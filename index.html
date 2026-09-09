@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>報到系統｜連線版 6u</title>
+<title>報到系統｜連線版 6v</title>
 <style>
 /* 原本是暖卡其色系（#2C2C2A / #D3D1C7 / #F1EFE8），
    在螢幕上會讀成「蒙塵、老舊」。改成冷調石板灰＋收斂的靛藍，
@@ -3290,7 +3290,8 @@ const T18N={
     f_email:'電子郵件格式不正確，請確認後再送出。',
     f_name:'姓名格式不正確，或超過長度上限。',
     f_data:'送出的資料有問題，請重新整理頁面後再試一次。',
-    done2_t:'報名完成', done2_s:'你的報名已完成，不需要等待審核。'
+    done2_t:'報名完成', done2_s:'你的報名已完成，不需要等待審核。',
+    optional:'選填', need_n:'姓名為必填'
   },
   en:{
     name:'Name', email:'Email', required:'required',
@@ -3323,7 +3324,8 @@ const T18N={
     f_email:'That email address does not look valid. Please check it and try again.',
     f_name:'That name is not valid, or it is too long.',
     f_data:'Something was wrong with the submitted data. Please refresh the page and try again.',
-    done2_t:'Registration complete', done2_s:'Your registration is complete. No review is needed.'
+    done2_t:'Registration complete', done2_s:'Your registration is complete. No review is needed.',
+    optional:'optional', need_n:'Name is required'
   },
   ja:{
     name:'お名前', email:'メールアドレス', required:'必須',
@@ -3356,7 +3358,8 @@ const T18N={
     f_email:'メールアドレスの形式が正しくありません。ご確認のうえ、再度送信してください。',
     f_name:'お名前の形式が正しくないか、文字数が上限を超えています。',
     f_data:'送信内容に問題がありました。ページを再読み込みしてから、もう一度お試しください。',
-    done2_t:'お申し込み完了', done2_s:'お申し込みが完了しました。審査をお待ちいただく必要はありません。'
+    done2_t:'お申し込み完了', done2_s:'お申し込みが完了しました。審査をお待ちいただく必要はありません。',
+    optional:'任意', need_n:'お名前は必須です'
   },
   ko:{
     name:'이름', email:'이메일', required:'필수',
@@ -3389,7 +3392,8 @@ const T18N={
     f_email:'이메일 주소 형식이 올바르지 않습니다. 확인 후 다시 제출해 주세요.',
     f_name:'이름 형식이 올바르지 않거나 길이가 너무 깁니다.',
     f_data:'제출된 데이터에 문제가 있습니다. 페이지를 새로 고친 후 다시 시도해 주세요.',
-    done2_t:'신청 완료', done2_s:'신청이 완료되었습니다. 별도의 승인 절차는 필요하지 않습니다.'
+    done2_t:'신청 완료', done2_s:'신청이 완료되었습니다. 별도의 승인 절차는 필요하지 않습니다.',
+    optional:'선택', need_n:'이름은 필수입니다'
   }
 };
 function tt(key,lang){
@@ -5072,7 +5076,7 @@ function pgFields(){
       '<button class="btn" onclick="impOpen(\'invite\')">匯入 Excel</button> '+
       '<button class="btn sec" onclick="fieldAddOpen()">＋ 新增欄位</button> '+
       '<button class="btn sec" onclick="tplPickOpen()">從範本庫挑選</button></div>'+
-      '<p style="margin-top:12px"><button class="btn sec" onclick="doneOpen()">報名完成設定</button></p>'+
+      '<p style="margin-top:12px"><button class="btn sec" onclick="doneOpen()">報名設定</button></p>'+
       (DONEOPEN?doneBox():'')+'</div>';
   }
   const rows=fldRowsHtml();
@@ -5084,7 +5088,7 @@ function pgFields(){
       '<button class="btn sec" onclick="tplPickOpen()">從範本庫挑選</button> '+
       '<button class="btn sec" onclick="syncTplTrans()">從範本庫同步翻譯</button> '+
       '<button class="btn sec" onclick="ROUTE=\'tpls\';tplPickClose();loadTpls().then(render)">管理範本庫 ↗</button> '+
-      '<button class="btn sec" onclick="doneOpen()">報名完成設定</button></p>'+
+      '<button class="btn sec" onclick="doneOpen()">報名設定</button></p>'+
     (FADD?faBox():'')+(TPLPICK?tplBox():'')+(DONEOPEN?doneBox():'')+
     '<div id="fselbar">'+fselBarHtml()+'</div>'+
     '<div class="tblwrap freeze"><table><thead><tr>'+
@@ -5662,22 +5666,29 @@ async function doneSave(){
   const auto=document.getElementById('raAuto').checked;
   const note=document.getElementById('raNote').checked;
   const btn=document.getElementById('raBtn').checked;
+  const emv=document.getElementById('raEmail').value;   /* 6v */
   busy('儲存中…');
   const {error}=await sb.from('events').update({
-    auto_approve:auto,show_review_note:note,show_info_btn:btn,done_msg:dmVal
+    auto_approve:auto,show_review_note:note,show_info_btn:btn,done_msg:dmVal,
+    email_mode:emv
   }).eq('id',EVID);
   busy(null);
   if(error){
     alert('儲存失敗');
-    log('儲存報名完成設定失敗',
-        error.message+'　（若是 column 不存在，請先執行 sql_6u_報名完成設定.sql）',true);
+    log('儲存報名設定失敗',
+        error.message+
+        '　（若是 column 不存在，請先執行 sql_6u_報名完成設定.sql 與 sql_6v_Email欄位模式.sql）',
+        true);
     return;
   }
-  Object.assign(e,{auto_approve:auto,show_review_note:note,show_info_btn:btn,done_msg:dmVal});
-  log('更新報名完成設定',
-      '自動核准='+(auto?'開':'關')+'　審核狀態說明='+(note?'開':'關')+
+  Object.assign(e,{auto_approve:auto,show_review_note:note,show_info_btn:btn,
+                   done_msg:dmVal,email_mode:emv});
+  const EMN={required:'必填',optional:'選填',hidden:'不顯示'};
+  log('更新報名設定',
+      'Email 欄位='+(EMN[emv]||emv)+'　自動核准='+(auto?'開':'關')+
+      '　審核狀態說明='+(note?'開':'關')+
       '　個人頁按鈕='+(btn?'開':'關')+'　自訂文案='+(dmVal?'有':'用系統預設')+
-      '　update events 的四個欄位');
+      '　update events 的五個欄位');
   DONEOPEN=false;render();
 }
 function doneBox(){
@@ -5685,6 +5696,7 @@ function doneBox(){
   const langs=evLangs(e);
   const dm=e.done_msg||{};
   const auto=!!e.auto_approve,note=!!e.show_review_note,btn=!!e.show_info_btn;
+  const emMode=(e.email_mode||'required');
   const sw=(idAttr,on,html)=>'<label class="sw"><input type="checkbox" id="'+idAttr+'"'+
     (on?' checked':'')+' onchange="doneWarn()"> '+html+'</label>';
   /* placeholder 放的是系統預設文案。留白時賓客看到的就是灰字那一句，
@@ -5705,9 +5717,20 @@ function doneBox(){
         inp(pfx+'_s_'+k,(o.s&&o.s[k])||'',langName(k),tt(ks,k))).join('')+'</div>';
   };
   return '<div class="card" style="border-color:var(--purple)" id="donebox">'+
-    '<h3>報名完成設定</h3>'+
-    '<p class="note">賓客按下送出之後看到的那一頁，以及要不要經過人工審核。改完要按儲存。</p>'+
-    '<p style="margin:12px 0 0">'+
+    '<h3>報名設定</h3>'+
+    '<p class="note">報名表單本身，以及賓客按下送出之後看到的那一頁。改完要按儲存。</p>'+
+    '<p style="margin:14px 0 4px"><b>表單</b></p>'+
+    '<div style="max-width:300px"><label>Email 欄位</label>'+
+      '<select id="raEmail">'+
+      [['required','必填'],['optional','選填（可留白）'],['hidden','不顯示']].map(o=>
+        '<option value="'+o[0]+'"'+(emMode===o[0]?' selected':'')+'>'+o[1]+'</option>'
+      ).join('')+'</select></div>'+
+    '<p class="note" style="margin:6px 0 0">'+
+      '只需要統計人數的場次可以整個關掉。沒留信箱的賓客<b>收不到任何信</b>'+
+      '（寄送時會列為略過），也拿不到個人資訊頁連結 —— 只能靠下面那顆按鈕。'+
+      '另外連按防呆會從比對信箱改成比對姓名。</p>'+
+    '<p style="margin:16px 0 4px"><b>完成畫面</b></p>'+
+    '<p style="margin:8px 0 0">'+
       sw('raAuto',auto,'<b>自動核准</b>　送出報名即為已核准，不經人工審核')+'</p>'+
     '<div class="warn" id="raW1" style="margin-top:8px'+(auto?'':';display:none')+'">'+
       '<b>自動核准開啟時，這三件事會跟著發生</b>'+
@@ -10203,6 +10226,7 @@ function renderForm(){
   if(LANGPICK)return pgFormLang();
   const e=ev();
   const req='（'+tt('required')+'）';
+  const optL='（'+tt('optional')+'）';   /* 6v：選填模式的標註 */
   let body;
   if(!e.reg_open&&qp('preview')!=='1'){
     body='<div class="warn"><b>'+esc(tt('closed_t'))+'</b>'+esc(tt('closed_s'))+'</div>';
@@ -10214,7 +10238,15 @@ function renderForm(){
         '而且送出時會被擋下 —— 開關以送出當下的資料庫狀態為準。</div>':'')+
       '<div class="card plain">'+
       '<label class="f"><span>'+esc(tt('name'))+esc(req)+'</span><input type="text" id="pfName"></label>'+
-      '<label class="f"><span>'+esc(tt('email'))+esc(req)+'</span><input type="email" id="pfMail"></label>'+
+      /* 6v：Email 欄位三種模式。
+         hidden 時整格不畫 —— submitForm 那邊拿 getElementById 會是 null，
+         已經處理過，不會爆。
+         ⚠️ 畫不畫只是畫面，真正的把關在 form-submit：
+            hidden 時伺服器一律丟掉送來的值。 */
+      ((e.email_mode||'required')==='hidden'?''
+        :'<label class="f"><span>'+esc(tt('email'))+
+          esc(e.email_mode==='optional'?optL:req)+
+          '</span><input type="email" id="pfMail"></label>')+
       FIELDS.map(f=>{
         const lab=esc(tx(f.t,LANG,f.label));
         /* 有顯示條件的欄位先藏起來，條件成立時才由 depApply() 打開。
@@ -10299,17 +10331,25 @@ function depApply(){
 }
 async function submitForm(btn){
   const n=document.getElementById('pfName').value.trim();
-  const m=document.getElementById('pfMail').value.trim();
-  if(!n||!m){alert(tt('need'));return}
+  /* 6v：hidden 模式沒有這一格，getElementById 會是 null */
+  const emailInputEl=document.getElementById('pfMail');
+  const m=emailInputEl?emailInputEl.value.trim():'';
+  const eMode=(ev().email_mode||'required');
+  /* 提示要跟畫面一致 —— Email 沒出現時不該說「姓名與電子郵件為必填」 */
+  if(!n){alert(tt(eMode==='required'?'need':'need_n'));return}
+  if(eMode==='required'&&!m){alert(tt('need'));return}
   /* 6u：Email 格式在送出前就擋下來。
      ⚠️ 這條 regex 跟 form-submit 裡那一條必須一模一樣。
         兩邊寬嚴不同的話會出現「前端說可以、伺服器說不行」，
         賓客看到的是送不出去又不知道哪裡錯。
-     這裡擋的是手滑，伺服器那一道才是把關 —— 不是重複，是兩件事。 */
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){
+     這裡擋的是手滑，伺服器那一道才是把關 —— 不是重複，是兩件事。
+     6v：只在有填的時候驗 —— 選填模式留白是合法的。 */
+  if(m&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){
     alert(tt('f_email'));
-    const el=document.getElementById('pfMail');
-    if(el){if(el.scrollIntoView)el.scrollIntoView({block:'center'});el.focus()}
+    if(emailInputEl){
+      if(emailInputEl.scrollIntoView)emailInputEl.scrollIntoView({block:'center'});
+      emailInputEl.focus();
+    }
     return;
   }
   /* 同意條款沒勾就不能送。
