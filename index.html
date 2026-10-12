@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>報到系統｜連線版 6v</title>
+<title>報到系統｜連線版 6w</title>
 <style>
 /* 原本是暖卡其色系（#2C2C2A / #D3D1C7 / #F1EFE8），
    在螢幕上會讀成「蒙塵、老舊」。改成冷調石板灰＋收斂的靛藍，
@@ -564,11 +564,11 @@ pre{background:#2C2C2A;color:#EDEBE4;padding:11px 13px;border-radius:6px;font-si
 /* 重抽時只有那一格在跳。用 !important 蓋掉 .ltone 的浮出動畫 ——
    兩個 animation 同時掛在同一個元素上，後面那個會贏，這裡要確定是脈動贏。 */
 .ltone.ltrolling{animation:ltpulse .9s ease-in-out infinite !important;opacity:1}
-.ltone.ltrolling .ltrname{font-size:var(--ltfs,3.4vw);text-shadow:0 0 26px rgba(122,92,190,.55)}
+.ltone.ltrolling .ltrname{font-size:var(--ltfs,3.4vw);text-shadow:0 0 26px rgba(var(--sg-rgb),.55)}
 .ltone.ltrolling .ltrsec{font-size:calc(var(--ltfs,3.4vw) * .42);margin-bottom:0}
 @keyframes ltpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 .ltrname{font-weight:800;color:#fff;line-height:1.15;white-space:nowrap;
-         text-shadow:0 0 26px rgba(122,92,190,.55)}
+         text-shadow:0 0 26px rgba(var(--sg-rgb),.55)}
 .ltrsec{color:#B9AFD1;white-space:nowrap;margin-bottom:.4vh}
 .ltrhint{font-size:1.3vw;color:#6E6485;margin-top:2.5vh;letter-spacing:.4em}
 /* 名字一條一條浮出來。動畫純前端，資料在按下的那一刻就已經定案 */
@@ -584,6 +584,227 @@ pre{background:#2C2C2A;color:#EDEBE4;padding:11px 13px;border-radius:6px;font-si
         padding-bottom:.08em}
 .ltsec{font-size:calc(var(--ltfs,3.4vw) * .42);color:#B9AFD1;margin-top:.2vh;white-space:nowrap}
 .ltone.gone .ltname,.ltone.gone .ltsec{color:#5C5470;text-decoration:line-through}
+
+/* =========================================================
+   6w：大螢幕色系、素材區、開場按鈕、底部那一條、overlay
+   ========================================================= */
+
+/* 六組色系。每組三階（亮／主／暗）給金屬漸層用，
+   外加一組 rgb 數值給半透明的光暈與描邊。
+   ⚠️ .ltwrap 自己也要有一份預設值 ——
+      資料庫讀不到 stage_theme 時（SQL 還沒跑）才不會整組變數是空的，
+      那會讓 rgba(var(--sg-rgb),.55) 直接失效、名字沒有光暈。 */
+.ltwrap{--sg-hi:#FCEDC6;--sg:#EEBE5C;--sg-lo:#C08520;--sg-rgb:232,180,76}
+.ltwrap[data-pal="gold"]  {--sg-hi:#FCEDC6;--sg:#EEBE5C;--sg-lo:#C08520;--sg-rgb:232,180,76}
+.ltwrap[data-pal="red"]   {--sg-hi:#FFDBD1;--sg:#F0705A;--sg-lo:#A8321F;--sg-rgb:240,112,90}
+.ltwrap[data-pal="blue"]  {--sg-hi:#D6E7FF;--sg:#63A3EC;--sg-lo:#1F56A8;--sg-rgb:99,163,236}
+.ltwrap[data-pal="green"] {--sg-hi:#D4F2E2;--sg:#4CBE8D;--sg-lo:#1A7050;--sg-rgb:76,190,141}
+.ltwrap[data-pal="purple"]{--sg-hi:#E9DCFF;--sg:#A486ED;--sg-lo:#5A3BA8;--sg-rgb:164,134,237}
+.ltwrap[data-pal="silver"]{--sg-hi:#F4F7FC;--sg:#B8C4D6;--sg-lo:#6C7A91;--sg-rgb:184,196,214}
+
+/* ---- 中間素材區 ----
+   圖片與影片都用 contain，不裁切 —— 主視覺被切掉邊會被客戶抓包。 */
+.ltmedia{flex:1 1 auto;min-height:0;width:100%;position:relative;
+         display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* ⚠️ 絕對定位，不是 flex item ——
+   素材與開場按鈕都放在 .ltmedia 裡，兩個都當 flex item 的話會左右並排，
+   圖片會被擠到旁邊。素材要鋪滿整塊、按鈕浮在它上面。
+   object-fit:contain 自己保持比例並置中，主視覺不會被裁掉邊。 */
+.ltmedia img,.ltmedia video{position:absolute;top:0;left:0;
+         width:100%;height:100%;object-fit:contain;display:block}
+
+/* ---- 6w-2：素材鋪滿 ＋ 中央訊息區（2026-10-06 改版）----
+   原本是「上方獎項列 ＋ 中間素材 ＋ 底部那一條」三層。
+   問題：素材被夾在中間只剩一半高度，得獎人擠在底下那條縫裡，
+   而設計師的主視覺文字常常壓在圖的上緣，跟獎項列疊在一起。
+
+   改成：素材鋪滿整個畫面，畫面上只有一個置中的訊息區，
+   獎項資訊／滾動／得獎名單三個階段輪流用同一個位置。
+
+   ⚠️ 不壓暗背景（Neal 指定）。可讀性改靠文字自己的深色描邊，
+      影響範圍只有字，不碰背景顏色。 */
+/* ⚠️ 字型只給「要投影出去的文字」，不要套在 .ltwrap 上。
+   套整塊的話下拉選單與輸入框也會變成 900 字重，字比框還高就被裁掉。 */
+.lttitle,.ltsub,.ltname,.ltsec,.ltrname,.ltrsec,.ltrhint,.ltempty,
+.ltcinfo,.ltcname,.ltcsec,.ltcsub,.ltstart,.ltslot,.ltwait,.ltov{
+  font-family:"Noto Sans TC","微軟正黑體","Microsoft JhengHei","PingFang TC",sans-serif}
+.ltbody.full{padding:0;position:relative}
+.ltmedia.full{position:absolute;inset:0;flex:none;width:auto;height:auto}
+/* cover 不是 contain —— 鋪滿的前提就是允許裁切。
+   素材規格文件要提醒設計師四邊各留安全區。 */
+.ltmedia.full img,.ltmedia.full video{object-fit:cover}
+.ltcenter{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;
+          align-items:center;justify-content:center;padding:0 3vw;text-align:center}
+/* 深色描邊 ＋ 陰影。六個方向的 1.5px 外框是為了亮紅底 ——
+   只給陰影不給外框的話，白字壓在高彩度的紅上還是會糊。 */
+.ltink{text-shadow:0 2px 10px rgba(0,0,0,.85),0 0 34px rgba(0,0,0,.70),
+       -1.5px -1.5px 0 rgba(0,0,0,.6),1.5px -1.5px 0 rgba(0,0,0,.6),
+       -1.5px 1.5px 0 rgba(0,0,0,.6),1.5px 1.5px 0 rgba(0,0,0,.6)}
+.ltcinfo .t{font-size:11vh;font-weight:900;letter-spacing:.04em;line-height:1.08;color:#fff}
+.ltcinfo .s{font-size:2.6vh;color:#DED9F0;margin-top:1.6vh;letter-spacing:.14em}
+/* 一列一個 .ltcrow，列與列之間自己分，不靠 flex-wrap ——
+   自動換行會出現「4＋1」這種最後一列只剩一個人的排法。 */
+.ltcrow{display:flex;justify-content:center;align-items:flex-start;width:100%}
+.ltcrow+.ltcrow{margin-top:1.2vh}
+/* padding-bottom 是給重抽／作廢按鈕的保留區。
+   位置固定、hover 只切換顯示與否，不影響版面高度 ——
+   全場都看著這個畫面，按鈕跳出來把名字推歪比誤觸更糟。 */
+.ltcell{text-align:center;padding:0 1vw 34px;min-width:0;position:relative}
+.ltcell .ltact{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+       display:none;gap:6px;z-index:5}
+.ltcell:hover .ltact{display:flex}
+.ltcell.gone .ltcname,.ltcell.gone .ltcsec{color:#9A93AE;text-decoration:line-through}
+.ltcname{font-weight:900;color:var(--sg-hi);line-height:1.18;
+         white-space:normal;word-break:keep-all;overflow-wrap:normal}
+.ltcsec{color:#E4DFF4;white-space:nowrap;margin-bottom:.3vh}
+.ltcsub{color:#EAE5F8;letter-spacing:.24em;margin-top:2.4vh;font-size:3vh;font-weight:700}
+
+/* 底部控制列：細窄毛玻璃，壓在素材上面而不是切掉一塊畫面。
+   ⚠️ 只有素材模式才改 —— 沒設素材的場次維持原本的實心底，
+      那個版面沒有背景圖，毛玻璃反而更難讀。 */
+.ltwrap.media .lttop{position:absolute;left:0;right:0;bottom:0;z-index:5;
+       padding:7px 14px;gap:9px;border-top:1px solid rgba(255,255,255,.16);
+       background:rgba(14,11,20,.42);
+       backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+/* ⚠️ 不要給固定高度。中文字在不同字重下的行高差很多，
+   寫死 height 的話字會從框裡被裁掉 —— 用內距撐開才安全。 */
+.ltwrap.media .lttop select,.ltwrap.media .lttop input{
+       height:auto;padding:5px 8px;font-size:12.5px;line-height:1.4}
+.ltwrap.media .lttop input{width:58px}
+.ltwrap.media .ltbtn{padding:5px 12px;font-size:12.5px}
+.ltwrap.media .ltbtn.go{padding:5px 18px}
+
+/* ---- 6w-2：大螢幕顯示設定改成頁面內的收合區塊 ----
+   原本是彈窗，但設定長到四個區塊（素材／外觀／顯示欄位／節奏），
+   640px 的彈窗要一直捲。改成放在獎項表格下方，寬度夠就能排兩欄。
+   ⚠️ 預設收合 —— 獎項是每場都要動的，顯示設定通常設一次就不碰。 */
+.lotsetbox{margin-top:20px}
+.lotsetbox .setcard{border:1px solid var(--line);border-radius:10px;
+      background:var(--card);padding:18px 22px}
+.lotsetbox .setcard h3{margin:0 0 14px}
+.lotsetbox .setcols{display:flex;gap:30px;align-items:flex-start}
+.lotsetbox .setcol{flex:1 1 0;min-width:0}
+/* 筆電橫向空間不夠時自己疊回一欄，不要硬擠成兩條窄欄 */
+@media(max-width:980px){.lotsetbox .setcols{display:block}}
+.lotsetbox .foot{margin-top:18px}
+
+/* ---- 紙本投影：素材模式 ---- */
+/* 名字逐位浮出。電子版的 .ltcell 是一次全部出現（本輪一起揭曉），
+   紙本是登錄一位長一位，所以要自己的浮出動畫。 */
+.ltcell.psin{opacity:0;transform:translateY(14px);animation:ltin .45s ease forwards}
+/* 分頁列排在名單下方，不浮在控制列上 ——
+   浮動要算控制列高度，字級一變就會疊到。 */
+.ltpgmid{margin-top:2.6vh;display:flex;justify-content:center;width:100%}
+
+/* ---- 開場按鈕 ----
+   圓形＋旋轉光弧。⚠️ 只留一個動態：中間之後要放圖片或動畫，按鈕不該搶戲。 */
+.ltstart{position:relative;z-index:2;cursor:pointer;font:inherit;
+         width:34vh;height:34vh;max-width:62vw;max-height:62vw;
+         padding:0;border:0;background:transparent;border-radius:50%;
+         display:grid;place-items:center}
+.ltstart::before{content:"";position:absolute;inset:-1.6vh;border-radius:50%;
+         background:conic-gradient(from 0deg,
+           rgba(var(--sg-rgb),0) 0deg,rgba(var(--sg-rgb),0) 48deg,
+           rgba(var(--sg-rgb),.5) 122deg,rgba(var(--sg-rgb),.98) 178deg,
+           rgba(var(--sg-rgb),.5) 234deg,rgba(var(--sg-rgb),0) 310deg);
+         -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px));
+         mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2.5px));
+         animation:ltspin 4.4s linear infinite}
+@keyframes ltspin{to{transform:rotate(360deg)}}
+.ltstart .ltscore{position:relative;width:100%;height:100%;border-radius:50%;
+         background:radial-gradient(118% 118% at 50% 16%,#221A33 0%,#16111F 54%,#0C0912 100%);
+         border:1px solid rgba(var(--sg-rgb),.34);
+         box-shadow:inset 0 0 4vh rgba(var(--sg-rgb),.09),0 0 5vh rgba(var(--sg-rgb),.16);
+         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5vh;
+         transition:border-color .22s,box-shadow .22s}
+.ltstart .ltst{font-size:5.6vh;font-weight:900;letter-spacing:.22em;text-indent:.22em;line-height:1.15;
+         background:linear-gradient(180deg,var(--sg-hi) 0%,var(--sg) 52%,var(--sg-lo) 100%);
+         -webkit-background-clip:text;background-clip:text;color:transparent}
+.ltstart .ltsrule{width:34%;height:1px;
+         background:linear-gradient(90deg,transparent,rgba(var(--sg-rgb),.62),transparent)}
+.ltstart .ltssub{font-size:1.9vh;letter-spacing:.42em;text-indent:.42em;
+         color:rgba(var(--sg-rgb),.62);font-weight:500;white-space:nowrap;
+         max-width:84%;overflow:hidden;text-overflow:ellipsis}
+.ltstart:hover .ltscore{border-color:rgba(var(--sg-rgb),.72);
+         box-shadow:inset 0 0 4vh rgba(var(--sg-rgb),.16),0 0 8vh rgba(var(--sg-rgb),.3)}
+.ltstart:hover::before{animation-duration:2s}
+.ltstart:active .ltscore{transform:scale(.985)}
+.ltstart:focus-visible{outline:3px solid #fff;outline-offset:4px}
+
+/* ---- 底部那一條 ----
+   ⚠️ 滾動與落定是同一個版面，不能換 ——
+      落定那一刻若版面跳一下，會破壞「停住的那個就是答案」的效果。 */
+.ltticker{flex:0 0 auto;min-height:16vh;width:100%;
+          border-top:1px solid #2A2337;
+          display:flex;align-items:center;justify-content:center;padding:0 3vw}
+.ltwait{font-size:3vh;color:#6E6485;letter-spacing:.3em}
+/* 分隔點釘在畫面正中：第一欄靠右、第二欄靠左，中線不動。
+   整行置中的話兩端都在動，滾動時那一條會左右呼吸，眼睛盯不住。 */
+.ltslot{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%}
+.ltslot .ltc1{justify-self:end;text-align:right;padding-right:1.6vw;
+              color:#B9AFD1;font-size:5vh;white-space:nowrap}
+.ltslot .ltcbar{width:1px;height:6.4vh;background:#2A2337}
+.ltslot .ltc2{justify-self:start;text-align:left;padding-left:1.6vw;
+              font-size:5vh;font-weight:700;white-space:nowrap;letter-spacing:.03em;color:#fff}
+/* 沒設第一欄時整個置中 —— 只剩姓名的話，從中央向右延伸會重心偏右 */
+.ltslot.solo{grid-template-columns:1fr}
+.ltslot.solo .ltc2{justify-self:center;text-align:center;padding:0}
+.ltslot.solo .ltc1,.ltslot.solo .ltcbar{display:none}
+.ltslot.landed .ltc2{color:var(--sg);text-shadow:0 0 26px rgba(var(--sg-rgb),.5)}
+
+/* ---- overlay ----
+   ⚠️ 接近全螢幕，不是置中對話框 ——
+      24 位鋪滿全螢幕字級是 2.8vw，塞進有邊框的視窗只剩 2vw 出頭，
+      投影到後排看不清。「投影出去看不清的名單等於沒公布」。 */
+.ltov{position:absolute;inset:0;z-index:30;background:rgba(6,5,12,.88);
+      display:flex;align-items:center;justify-content:center;padding:3vh 3vw}
+.ltovbox{width:100%;height:100%;border:1px solid #2A2337;border-radius:8px;
+         background:rgba(14,11,20,.72);padding:3vh 3vw;
+         display:flex;flex-direction:column;gap:2vh}
+.ltovhead{flex:0 0 auto;display:flex;align-items:baseline;justify-content:space-between;gap:2vw}
+.ltovhead b{font-size:3.4vh;letter-spacing:.04em;color:#fff}
+.ltovhead span{font-size:2.4vh;color:#9A8FB5}
+.ltovlist{flex:1 1 auto;min-height:0;display:flex;flex-wrap:wrap;
+          align-content:center;justify-content:center;gap:2.6vh 2vw;overflow-y:auto}
+.ltovfoot{flex:0 0 auto;text-align:center;font-size:2.2vh;color:#6E6485;letter-spacing:.14em}
+
+/* ---- 鍵位說明 ---- */
+.ltkeys{position:absolute;inset:0;z-index:40;background:rgba(6,5,12,.92);
+        display:flex;align-items:center;justify-content:center;padding:4vh 4vw}
+.ltkeysbox{max-width:640px;width:100%}
+.ltkeysbox h3{font-size:3vh;margin:0 0 2.4vh;color:#fff;letter-spacing:.06em}
+.ltkeysbox table{width:100%;border-collapse:collapse;font-size:2.1vh}
+.ltkeysbox td{padding:1.1vh .8vw;border-bottom:1px solid #241E33;color:#D6CFE8}
+.ltkeysbox td:first-child{width:1%;white-space:nowrap}
+.ltkeysbox kbd{display:inline-block;min-width:3.4vh;text-align:center;
+        background:#241C33;border:1px solid #453862;border-radius:5px;
+        padding:.3vh .7vw;font:inherit;font-size:1.9vh;color:var(--sg)}
+
+/* ---- 獎項選單 ---- */
+.ltpick{position:absolute;inset:0;z-index:40;background:rgba(6,5,12,.92);
+        display:flex;align-items:center;justify-content:center;padding:4vh 4vw}
+.ltpickbox{max-width:720px;width:100%}
+.ltpickbox h3{font-size:3vh;margin:0 0 2.4vh;color:#fff;letter-spacing:.06em}
+.ltpickrow{display:flex;align-items:baseline;justify-content:space-between;gap:2vw;
+        padding:1.4vh 1.4vw;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.ltpickrow b{font-size:2.6vh;color:#D6CFE8;font-weight:600}
+.ltpickrow span{font-size:2.1vh;color:#8C82A8;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ltpickrow.on{background:rgba(var(--sg-rgb),.13);border-color:rgba(var(--sg-rgb),.5)}
+.ltpickrow.on b{color:var(--sg)}
+.ltpickrow.done b,.ltpickrow.done span{color:#5C5470}
+.ltpickfoot{margin-top:2.4vh;text-align:center;font-size:2vh;color:#6E6485;letter-spacing:.1em}
+
+/* 按鍵回饋：按下去沒反應現場會慌 */
+.ltflash{position:absolute;inset:0;z-index:60;pointer-events:none;
+         box-shadow:inset 0 0 0 3px rgba(var(--sg-rgb),.55);
+         animation:ltflash .32s ease-out forwards}
+@keyframes ltflash{to{opacity:0}}
+
+@media (prefers-reduced-motion: reduce){
+  .ltstart::before{animation:none;
+    background:conic-gradient(from 0deg,rgba(var(--sg-rgb),.46),rgba(var(--sg-rgb),.95),rgba(var(--sg-rgb),.46))}
+  .ltflash{animation:none;opacity:0}
+}
 /* 重抽／作廢平常藏著，滑到那一列才出現 ——
    大螢幕正在投影，全場都看著，誤觸的代價是現場事故 */
 /* 按鈕放格內底部置中，不用負值定位 ——
@@ -640,6 +861,11 @@ pre{background:#2C2C2A;color:#EDEBE4;padding:11px 13px;border-radius:6px;font-si
 <div id="app"><div class="wrap"><p class="note">載入中…</p></div></div>
 <div id="logbox"><div class="h" onclick="toggleLog()"><b>操作紀錄</b><span class="note" id="logn"></span></div><div class="b" id="logb"></div></div>
 
+<!-- 大螢幕字體。⚠️ 走 CDN 不另外增加風險 —— 這個系統本來就要連網（Supabase），
+     網路掛掉的話整套都動不了，不差一個字型。載不到會自動掉回微軟正黑體。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <!-- QR Code Generator for JavaScript, (c) 2009 Kazuhiko Arase, MIT License -->
@@ -2959,6 +3185,14 @@ var qrcode = function() {
    設定
    ========================================================= */
 const SUPABASE_URL = 'https://kdodcjlmqmiifztuhepo.supabase.co';
+/* ⚠️ publishable key 是設計成公開的，寫在前端沒有安全性問題。
+   真正的防線是 RLS 政策。
+
+   2026-10-06 的教訓：Storage 上傳一直被擋，錯誤是
+   "new row violates row-level security policy"。中途懷疑過是新版 key
+   的問題，一度把這裡換成 legacy anon key —— 查完確認與 key 完全無關。
+   真正的原因是 storage.objects 少了一條 SELECT policy，見 stgPut() 的註解。
+   這裡維持 publishable key，與 index.html 一致。 */
 const SUPABASE_KEY = 'sb_publishable_-B91EfzPD91uDgfR12tpwg_2Ok1tXw3';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -3474,7 +3708,9 @@ function cacheLoad(){
   EVENTS=[c.event];EVID=c.event.id;FIELDS=c.fields||[];
   GUESTS=c.guests||[];VALS=c.vals||{};SINCE=c.since||null;STATS=c.stats||null;
   CODE={code:CKCODE,label:c.label||'離線',active:true};
-  CKROLE=(c.role==='redeem')?'redeem':'checkin';
+  /* ⚠️ 6w：這一行跟 open 回傳處是同一個根因，一定要一起改 ——
+     只改那邊的話，斷網重整會從快取讀回來又退回 checkin。 */
+  CKROLE=(['checkin','redeem','lottery'].indexOf(c.role)>=0)?c.role:'checkin';
   CKGIFT=!!c.gift;
   return true;
 }
@@ -3497,8 +3733,21 @@ let RD={guest:null,items:[],busy:0};
       認人完全靠券號，由 Edge Function 查。 */
 let PP={prizes:[],pid:null,rows:[],busy:false,note:null}, PPT=null;
 function qp(n){return new URLSearchParams(location.search).get(n)}
-const VIEW=qp('view');
+/* ⚠️ 不是 const —— 中性入口（?view=go）要在拿到職能之後改寫它。
+   其餘地方一律當唯讀看待，只有 goSwitch() 可以改。 */
+let VIEW=qp('view');
 function baseUrl(){return location.href.split('?')[0]}
+
+/* 中性入口專用：切到職能對應的頁，並把網址一起改寫。
+   ⚠️ replaceState 不能省 —— 現場人員很習慣把當下的網址加書籤或轉傳，
+      留著 ?view=go 的話每次開都要再問一次伺服器。
+   ⚠️ 新網址刻意不帶 code：代碼已經存在這台裝置，
+      放進網址只會多一條外流的路。 */
+function goSwitch(want){
+  if(VIEW===want)return;
+  VIEW=want;
+  try{history.replaceState(null,'',baseUrl()+'?view='+want)}catch(_){}
+}
 
 /* ---------------- LINE 內建瀏覽器對策 ----------------
 
@@ -4550,7 +4799,9 @@ function render(){
     '<button onclick="reloadCurrent()">重新讀取</button>';
 
   let h='';
-  if(VIEW==='checkin'){document.getElementById('app').innerHTML=lineBar('zh')+renderCheckin();
+  /* 'go' 是中性入口，還沒分流之前借用核銷頁的代碼輸入畫面。
+     輸入成功後 goSwitch() 會把 VIEW 換掉，不會停在這裡。 */
+  if(VIEW==='checkin'||VIEW==='go'){document.getElementById('app').innerHTML=lineBar('zh')+renderCheckin();
     /* 重繪會換掉 video 元素，要把既有的鏡頭串流重新接上 */
     if(CAM.on&&CAM.stream){
       const v=document.getElementById('camv');
@@ -4591,6 +4842,10 @@ function render(){
   else if(ROUTE==='mlog')  h=pgMLog();
   else if(ROUTE==='lots')  h=pgLots();
   document.getElementById('app').innerHTML=h;
+  /* 6w-2：大螢幕設定是頁面內的區塊，不是彈窗。
+     ⚠️ 一定要在 innerHTML 寫完之後才補 —— render() 每次都重建整個 app，
+        裡面的事件處理器會跟著被清掉，所以每一次重繪都要重新接一次。 */
+  if(ROUTE==='lots'&&LOTSET&&document.getElementById('lotsetbox'))lotStageSet();
 }
 function errBlock(){
   return '<div class="warn"><b>讀不到資料</b>下面整段複製給我。</div><pre>'+esc(errText(ERR))+'</pre>'+
@@ -6011,6 +6266,8 @@ function selAllFiltered(){
   SELALL=true;gfPaint();
 }
 let MODAL=null;
+/* 6w-2：大螢幕顯示設定的展開狀態。預設收合。 */
+let LOTSET=false;
 function modalClose(){MODAL=null;paintModal()}
 function paintModal(){
   let el=document.getElementById('modal');
@@ -7610,18 +7867,260 @@ function lotRecs(id){
 
 /* 大螢幕顯示設定：挑兩個欄位、調間隔。放在後台不放大螢幕 ——
    大螢幕在投影，設定畫面不該出現在全場面前。 */
+/* =========================================================
+   6w：大螢幕素材上傳（Supabase Storage）
+   bucket 固定叫 stage，公開讀取 ——
+   <img> 與 <video> 沒辦法帶驗證標頭，所以只能公開。
+   ⚠️ 這個 bucket 只放要投在大螢幕給全場看的素材，
+      任何名單或報名資料都不準放進去。
+   ========================================================= */
+const STG_BUCKET='stage';
+const STG_MAX_IMG=2*1024*1024;      /* 2 MB */
+const STG_MAX_ANIM=10*1024*1024;    /* 10 MB，Free 方案單檔上限是 50 MB，
+                                       但真正的瓶頸是每月 5 GB 流量 */
+
+/* 影片長度自動讀出來，不必人工量秒數 ——
+   這是選 MP4 而不是 GIF 的主要理由，GIF 量不到長度。 */
+function stgVideoMs(file){
+  return new Promise(function(res){
+    try{
+      const u=URL.createObjectURL(file);
+      const v=document.createElement('video');
+      v.preload='metadata';
+      v.onloadedmetadata=function(){
+        const ms=Math.round((v.duration||0)*1000);
+        URL.revokeObjectURL(u);
+        res(ms>0&&isFinite(ms)?ms:null);
+      };
+      v.onerror=function(){URL.revokeObjectURL(u);res(null)};
+      v.src=u;
+    }catch(_){res(null)}
+  });
+}
+
+/* 取目前登入者的 access_token。
+   上傳自己 fetch 而不用 supabase-js 的 storage client，理由見 stgPut()。 */
+async function stgToken(){
+  const g=await sb.auth.getSession();
+  const s=g&&g.data?g.data.session:null;
+  return (s&&s.access_token)?s.access_token:null;
+}
+
+/* 直接打 Storage 的 REST API。
+
+   ⚠️ 2026-10-06 的除錯紀錄 —— 這段請留著，重踩一次要花半天：
+
+      症狀：上傳一律回 "new row violates row-level security policy"，
+      但後台 Supabase UI 上傳正常、前端診斷顯示身分是 authenticated。
+
+      走過的死路（全部無效，不要再試）：換 policy 寫法、改 to public、
+      改用 localhost 而非 file://、自己帶 Authorization 標頭、
+      第二個帶 global.headers 的 client、改用 legacy anon key。
+
+      真正原因：storage.objects 只建了 INSERT 和 UPDATE 兩條 policy，
+      沒有 SELECT。上傳帶 x-upsert 時 Postgres 執行的是
+      INSERT ... ON CONFLICT DO UPDATE，這種語句必須讀得到衝突的舊列，
+      少了 SELECT policy 整句就被擋 —— 而它報的錯長得像 INSERT 權限不足。
+      修正：sql_6w_stage上傳權限_v2.sql。
+
+      定位方法（下次可重用）：在 policy 的 WITH CHECK 裡放一個會拋錯的函式，
+      把 current_user / auth.uid() 編進 SQLSTATE 代碼帶回前端。
+      Storage 會吃掉錯誤訊息，但代碼一定傳得回來。
+
+   自己 fetch 而不用 sb.storage.from().upload() 只是為了掌握每一個標頭、
+   方便除錯；兩種做法現在都可以正常上傳。
+
+   回傳 {error:{message}} 或 {data:{path}}，形狀跟原本的 upload() 一致，
+   呼叫端不必改。 */
+async function stgPut(path,file,token){
+  const url=SUPABASE_URL+'/storage/v1/object/'+STG_BUCKET+'/'+
+            path.split('/').map(encodeURIComponent).join('/');
+  let resp;
+  try{
+    resp=await fetch(url,{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+token,
+        'apikey':SUPABASE_KEY,
+        'x-upsert':'true',
+        'Content-Type':file.type||'application/octet-stream'
+      },
+      body:file
+    });
+  }catch(e){
+    return {error:{message:'連線失敗：'+((e&&e.message)||e)}};
+  }
+  if(!resp.ok){
+    let msg='HTTP '+resp.status;
+    try{
+      const t=await resp.text();
+      try{const j=JSON.parse(t);msg=j.message||j.error||t||msg}catch(_){if(t)msg=t}
+    }catch(_){}
+    return {error:{message:msg}};
+  }
+  return {data:{path:path}};
+}
+
+async function stgUpload(file,kind){
+  const isAnim=(kind==='anim');
+  const max=isAnim?STG_MAX_ANIM:STG_MAX_IMG;
+  if(file.size>max){
+    alert('檔案太大：'+(file.size/1048576).toFixed(1)+' MB，上限 '+(max/1048576)+' MB。');
+    return null;
+  }
+  const ok=isAnim?['video/mp4']:['image/png','image/jpeg','image/webp'];
+  if(ok.indexOf(file.type)<0){
+    alert(isAnim?'動畫只接受 .mp4（H.264 編碼）。':'圖片只接受 .png／.jpg／.webp。');
+    return null;
+  }
+  /* 檔名用活動編號＋時間戳，不用原始檔名 ——
+     中文檔名與空白在網址裡要轉義，而且同名會互相覆蓋。 */
+  const ext=isAnim?'mp4':(file.type==='image/png'?'png':(file.type==='image/webp'?'webp':'jpg'));
+  const path='ev'+EVID+'/'+kind+'-'+Date.now()+'.'+ext;
+  busy('上傳中…');
+  const tok=await stgToken();
+  if(!tok){
+    busy(null);
+    alert('請先登入後台再上傳素材。');
+    return null;
+  }
+  const r=await stgPut(path,file,tok);
+  busy(null);
+  if(r.error){
+    const msg=String(r.error.message||r.error);
+    /* ⚠️ 失敗時一併印出身分 ——
+       stage 的上傳政策是 to authenticated，所以 RLS 擋下來
+       等於「這個請求不是 authenticated」。
+       原文訊息看不出是 token 過期、沒登入、還是別的，印出來才查得下去。 */
+    let diag='';
+    try{
+      const g=await sb.auth.getSession();
+      const s=g&&g.data?g.data.session:null;
+      const now=Math.floor(Date.now()/1000);
+      diag='\n\n── 診斷 ──'+
+        '\n身分：'+((s&&s.user&&s.user.role)||'（沒有 session，等於未登入）')+
+        '\n帳號：'+((s&&s.user&&s.user.email)||'—')+
+        '\ntoken：'+(s&&s.expires_at
+            ? (s.expires_at<now?('已過期 '+Math.round((now-s.expires_at)/60)+' 分鐘')
+                               :('還有 '+Math.round((s.expires_at-now)/60)+' 分鐘'))
+            : '—');
+    }catch(_){diag='\n\n（讀取登入狀態時也失敗了）'}
+
+    let hint='';
+    if(/row-level security|violates/i.test(msg)){
+      hint='\n\n這是權限被擋，不是檔案的問題。'+
+           '\n上傳已經強制帶上登入 token，若身分顯示正常卻仍被擋，'+
+           '\n請確認 sql_6w_stage上傳權限.sql 跑過了。';
+    }else if(/bucket/i.test(msg)){
+      hint='\n\n看起來是 stage 這個 bucket 還沒建立，請見 Storage建置步驟_6w.md。';
+    }else if(/file name|invalid/i.test(msg)){
+      hint='\n\n檔名不合法。系統會自己改成英數檔名，出現這個訊息請回報。';
+    }
+    alert('上傳失敗：'+msg+hint+diag);
+    log('大螢幕素材上傳失敗',msg+diag.replace(/\n/g,'　'),true);
+    return null;
+  }
+  let ms=null;
+  if(isAnim)ms=await stgVideoMs(file);
+  return {path:path,ms:ms};
+}
+
+/* 移除只清掉資料庫那一欄，Storage 裡的檔案留著 ——
+   刪檔要多一次 API 呼叫而且失敗了也沒人會發現，
+   留著的成本只有幾 MB，換掉的舊素材放著不礙事。 */
+function stgPreviewHtml(e,kind){
+  const path=(kind==='anim')?e.stage_anim:e.stage_img;
+  if(!path)return '<span class="note">尚未上傳</span>';
+  const u=stageUrl(path);
+  return (kind==='anim'
+      ? '<video src="'+esc(u)+'" muted playsinline style="max-width:200px;max-height:112px;border-radius:4px;background:#000"></video>'
+      : '<img src="'+esc(u)+'" style="max-width:200px;max-height:112px;border-radius:4px" alt="">')+
+    '<span class="note" style="margin-left:10px">已上傳'+
+      ((kind==='anim'&&e.stage_anim_ms)?('　長度 '+(e.stage_anim_ms/1000).toFixed(1)+' 秒'):'')+'</span>';
+}
+
+function lotStageToggle(){LOTSET=!LOTSET;render()}
+
+/* 設定面板掛在哪裡。
+   抽獎設定頁有 #lotsetbox 就填在那裡；找不到就退回原本的彈窗，
+   這樣其他地方萬一也呼叫 lotStageSet() 不會壞掉。 */
+function lotSetHost(html){
+  const box=document.getElementById('lotsetbox');
+  if(!box)return modal(html);
+  box.innerHTML='<div class="setcard">'+html+'</div>';
+  return box;
+}
+
 function lotStageSet(){
   const e=ev()||{};
-  const m=modal('<h3>大螢幕顯示設定</h3>'+
-    '<p class="note">中獎者在大螢幕上顯示哪兩行字。'+
-      '姓名、Email、桌次是系統固定欄位，其餘是這場的自訂欄位。</p>'+
-    '<label class="f"><span>小字（上面那行，通常放工號）</span>'+
+  const PALS=[['gold','金　喜慶、尾牙春酒'],['red','朱紅　年節、週年慶'],
+              ['blue','寶藍　科技、商務年會'],['green','翠綠　ESG、永續主題'],
+              ['purple','紫　派對、時尚'],['silver','銀　簡約、中性']];
+  const m=lotSetHost('<h3>大螢幕顯示設定</h3>'+
+
+    '<div class="setcols"><div class="setcol">'+
+    '<p style="margin:0 0 4px"><b>中間素材</b></p>'+
+    '<p class="note" style="margin:0 0 10px">整場共用一組。'+
+      '<b>有動畫時以動畫為準。</b>'+
+      '有設素材時，素材會鋪滿整個畫面當背景（會裁切，四邊請留安全區），'+
+      '獎項資訊、抽選滾動、得獎名單三個階段都顯示在畫面正中央 —— '+
+      '同時只會有一件事在畫面上。'+
+      '兩個都不放就維持原本的版面（上方獎項列、名單佔滿畫面）。</p>'+
+    '<label class="f"><span>圖片（.png／.jpg／.webp，2 MB 內）</span>'+
+      '<input type="file" id="sfimg" accept="image/png,image/jpeg,image/webp"></label>'+
+    '<p class="note" style="margin:-6px 0 10px" id="spvimg">'+stgPreviewHtml(e,'img')+
+      (e.stage_img?' <button class="btn sec sm" id="srmimg">移除</button>':'')+'</p>'+
+    '<label class="f"><span>　或直接貼圖片網址</span>'+
+      '<input type="text" id="suimg" placeholder="https://… 或留白" value="'+
+      esc(e.stage_img||'')+'"></label>'+
+    '<label class="f"><span>動畫（.mp4／H.264／靜音，10 MB 內）</span>'+
+      '<input type="file" id="sfanim" accept="video/mp4"></label>'+
+    '<p class="note" style="margin:-6px 0 10px" id="spvanim">'+stgPreviewHtml(e,'anim')+
+      (e.stage_anim?' <button class="btn sec sm" id="srmanim">移除</button>':'')+'</p>'+
+    '<label class="f"><span>　或直接貼動畫網址</span>'+
+      '<input type="text" id="suanim" placeholder="https://… 或留白" value="'+
+      esc(e.stage_anim||'')+'"></label>'+
+    '<label class="f"><span>　動畫長度（毫秒）</span>'+
+      '<input type="number" id="sanimms" min="500" max="20000" step="100" placeholder="4000" value="'+
+      esc(e.stage_anim_ms==null?'':String(e.stage_anim_ms))+'"></label>'+
+    '<p class="note" style="margin:-6px 0 12px">上傳檔案時長度會自動讀出來；'+
+      '貼網址的話讀不到，要自己填（決定播多久之後彈出得獎名單）。'+
+      '<b>Storage 的 bucket 還沒建好之前，先貼網址就能看版面效果。</b></p>'+
+    '<div class="warn" style="margin-bottom:14px"><b>動畫的三個硬規則</b>'+
+      '編碼必須是 <b>H.264</b>（H.265／HEVC 在 Chrome 上是全黑畫面而且沒有錯誤訊息）　·　'+
+      '必須<b>無聲</b>（有聲音瀏覽器會擋掉自動播放）　·　長度 <b>3–5 秒</b>'+
+      '（每抽一次播一次，一場可能播十次以上）。完整規格見「抽獎大螢幕_素材規格.docx」。</div>'+
+
+    '</div><div class="setcol">'+
+    '<p style="margin:0 0 4px"><b>外觀</b></p>'+
+    '<label class="f"><span>色系</span><select id="spal">'+
+      PALS.map(function(x){return '<option value="'+x[0]+'"'+
+        (((e.stage_theme||'gold')===x[0])?' selected':'')+'>'+x[1]+'</option>'}).join('')+
+      '</select></label>'+
+    '<p class="note" style="margin:-6px 0 12px">不只換開場按鈕 —— '+
+      '落定時的名字顏色、動畫的光暈都跟著走，整個畫面是一套的。</p>'+
+    '<label class="f"><span>開場按鈕副標</span>'+
+      '<input type="text" id="ssub" maxlength="24" placeholder="留白則不顯示" value="'+
+      esc(e.stage_sub||'')+'"></label>'+
+    '<p class="note" style="margin:-6px 0 12px">「開始抽獎」底下那一行小字，例如 LUCKY DRAW 或活動名稱。'+
+      '那顆按鈕只在剛打開投影時出現一次，之後每輪結束回到的是「等待抽獎」。</p>'+
+
+    '<p style="margin:16px 0 4px"><b>顯示欄位</b></p>'+
+    '<p class="note" style="margin:0 0 10px">中獎者在大螢幕上顯示哪兩欄。'+
+      '姓名、Email、桌次是系統固定欄位，其餘是這場的自訂欄位。<br>'+
+      '底部那一條是<b>左右並排、同樣大小</b>（第一欄在左）；'+
+      '得獎名單的格子則是<b>上下堆疊、第二欄較大</b> —— '+
+      '24 位鋪滿時姓名要夠突出，遠處才認得出來。</p>'+
+    '<label class="f"><span>第一欄（通常放部門或工號）</span>'+
       '<select id="sf1">'+lotFieldOpts(e.stage_f1)+'</select></label>'+
-    '<label class="f"><span>大字（下面那行，通常放姓名）</span>'+
+    '<label class="f"><span>第二欄（通常放姓名）</span>'+
       '<select id="sf2">'+lotFieldOpts(e.stage_f2)+'</select></label>'+
-    '<p class="note" style="margin:-6px 0 12px">大字不挑就顯示姓名；'+
+    '<p class="note" style="margin:-6px 0 12px">第二欄不挑就顯示姓名；'+
       '挑了但某位賓客那一欄是空的，也會自動退回姓名 —— '+
-      '大螢幕上不能出現空白，全場正在看那個位置。</p>'+
+      '大螢幕上不能出現空白，全場正在看那個位置。<br>'+
+      '第一欄留空時，底部那一條會把姓名整個置中。</p>'+
+
+    '<p style="margin:16px 0 4px"><b>節奏</b></p>'+
     '<label class="f"><span>抽選滾動時間（毫秒）</span>'+
       '<input type="number" id="sroll" min="0" max="8000" step="500" value="'+
         (e.stage_roll==null?2500:e.stage_roll)+'"></label>'+
@@ -7640,9 +8139,59 @@ function lotStageSet(){
       '<b>第一頁會額外等浮出跑完</b> —— 24 位用 800 毫秒浮出就是 19 秒，'+
       '再加上這裡的停留時間才翻頁。覺得太久的話先把浮出間隔調小。'+
       '翻到最後一頁就停住，不會循環。</p>'+
+    '</div></div>'+
     '<div class="foot"><button class="btn sec" id="c">取消</button>'+
       '<button class="btn" id="s">儲存</button></div>');
-  m.querySelector('#c').onclick=()=>m.remove();
+  /* 取消：彈窗就關掉，頁面內的區塊則是收合起來 */
+  m.querySelector('#c').onclick=()=>{
+    if(m.classList.contains('mask'))m.remove(); else {LOTSET=false;render()}
+  };
+
+  /* 6w：素材的上傳與移除。
+     ⚠️ 選檔後立刻上傳並寫進資料庫，不等最下面那顆「儲存」——
+        檔案已經傳到 Storage 了，讓它跟其他欄位綁在一起只會多一種
+        「傳好了但沒存到」的狀態。 */
+  let UP={img:e.stage_img||null, anim:e.stage_anim||null, ms:e.stage_anim_ms||null};
+  async function pickFile(kind){
+    const el=m.querySelector(kind==='anim'?'#sfanim':'#sfimg');
+    const f=el&&el.files&&el.files[0];
+    if(!f)return;
+    const r=await stgUpload(f,kind);
+    el.value='';
+    if(!r)return;
+    const patch={};
+    if(kind==='anim'){UP.anim=r.path;UP.ms=r.ms;patch.stage_anim=r.path;patch.stage_anim_ms=r.ms}
+    else{UP.img=r.path;patch.stage_img=r.path}
+    const {error}=await sb.from('events').update(patch).eq('id',EVID);
+    if(error){alert('已上傳但寫入設定失敗：'+error.message);
+      log('大螢幕素材寫入失敗',error.message,true);return}
+    Object.assign(e,patch);
+    log('上傳大螢幕素材：'+(kind==='anim'?'動畫':'圖片'),
+        r.path+(r.ms?('　長度 '+(r.ms/1000).toFixed(1)+' 秒'):''));
+    /* ⚠️ 頁面內的區塊不能 remove —— 那是 pgLots 畫出來的掛載點，
+       砍掉之後 render() 就再也找不到地方填了。只有彈窗才需要關。 */
+    if(m.classList.contains('mask'))m.remove();
+    await loadEvents();await loadEvent(EVID);render();
+  }
+  const fi=m.querySelector('#sfimg'); if(fi)fi.onchange=()=>pickFile('img');
+  const fa=m.querySelector('#sfanim'); if(fa)fa.onchange=()=>pickFile('anim');
+
+  async function removeMedia(kind){
+    /* 只清資料庫那一欄，Storage 裡的檔案留著 ——
+       刪檔多一次呼叫、失敗了也沒人會發現，留著的成本只有幾 MB。 */
+    const patch=(kind==='anim')?{stage_anim:null,stage_anim_ms:null}:{stage_img:null};
+    const {error}=await sb.from('events').update(patch).eq('id',EVID);
+    if(error){alert('移除失敗');log('移除大螢幕素材失敗',error.message,true);return}
+    Object.assign(e,patch);
+    log('移除大螢幕素材：'+(kind==='anim'?'動畫':'圖片'),'只清掉設定，檔案仍在 Storage');
+    /* ⚠️ 頁面內的區塊不能 remove —— 那是 pgLots 畫出來的掛載點，
+       砍掉之後 render() 就再也找不到地方填了。只有彈窗才需要關。 */
+    if(m.classList.contains('mask'))m.remove();
+    await loadEvents();await loadEvent(EVID);render();
+  }
+  const ri=m.querySelector('#srmimg'); if(ri)ri.onclick=()=>removeMedia('img');
+  const ra=m.querySelector('#srmanim'); if(ra)ra.onclick=()=>removeMedia('anim');
+
   m.querySelector('#s').onclick=async()=>{
     let gap=parseInt(m.querySelector('#sgap').value,10)||800;
     if(gap<300)gap=300; if(gap>3000)gap=3000;
@@ -7653,15 +8202,33 @@ function lotStageSet(){
     if(isNaN(page))page=6000;
     if(page<2000)page=2000; if(page>15000)page=15000;
     const f1=m.querySelector('#sf1').value, f2=m.querySelector('#sf2').value;
+    const pal=m.querySelector('#spal').value;
+    const sub=m.querySelector('#ssub').value.trim();
+    /* 素材欄位：上傳是即時寫入的，這兩格是給「直接貼網址」用的。
+       留白就是清掉 —— 跟移除按鈕同一個效果。 */
+    const uimg=m.querySelector('#suimg').value.trim();
+    const uanim=m.querySelector('#suanim').value.trim();
+    let ams=parseInt(m.querySelector('#sanimms').value,10);
+    if(isNaN(ams)||ams<500)ams=null;
+    if(ams&&ams>20000)ams=20000;
     const {error}=await sb.from('events').update({
       stage_f1:f1||null,
       stage_f2:f2||null,
-      stage_gap:gap, stage_roll:roll, stage_page:page}).eq('id',EVID);
-    if(error){alert('儲存失敗');log('儲存大螢幕設定失敗',error.message,true);return}
+      stage_gap:gap, stage_roll:roll, stage_page:page,
+      stage_theme:pal||'gold', stage_sub:sub||null,
+      stage_img:uimg||null, stage_anim:uanim||null,
+      stage_anim_ms:(uanim?(ams||4000):null)}).eq('id',EVID);
+    if(error){alert('儲存失敗');
+      log('儲存大螢幕設定失敗',
+          error.message+'　（若是 column 不存在，請先執行 sql_6w_大螢幕素材.sql）',true);return}
     log('更新大螢幕顯示設定',
-        '小字 '+lotFieldName(f1)+'　大字 '+lotFieldName(f2)+
+        '第一欄 '+lotFieldName(f1)+'　第二欄 '+lotFieldName(f2)+
+        '　色系 '+pal+'　副標 '+(sub||'（不顯示）')+
+        '　圖片 '+(uimg||'無')+'　動畫 '+(uanim||'無')+
+        (uanim?('　動畫長度 '+(ams||4000)+' ms'):'')+
         '　滾動 '+roll+' ms　浮出間隔 '+gap+' ms　翻頁停留 '+page+' ms');
-    m.remove();await loadEvents();await loadEvent(EVID);ROUTE='lots';render();
+    if(m.classList.contains('mask'))m.remove();
+    await loadEvents();await loadEvent(EVID);ROUTE='lots';render();
   };
 }
 
@@ -7953,7 +8520,7 @@ function pgLots(){
     '<p style="margin-bottom:12px">'+
       '<button class="btn b" onclick="lotForm(0)">新增獎項</button> '+
       '<button class="btn sec" onclick="lotImpOpen()">匯入獎項</button> '+
-      '<button class="btn sec" onclick="lotStageSet()">'+(paper?'投影顯示設定':'大螢幕顯示設定')+'</button> '+
+      '<button class="btn sec" onclick="lotStageToggle()">'+(paper?'投影顯示設定':'大螢幕顯示設定')+(LOTSET?' \u25B2':' \u25BC')+'</button> '+
       '<button class="btn sec" onclick="lotSync()" title="現場動過之後按這裡更新數字">重新載入</button> '+
       (paper
         ?'<button class="btn sec" onclick="newTab(\'?view=pstage&e='+e.id+'\')">開啟投影畫面 \u2197</button>'
@@ -8001,6 +8568,9 @@ function pgLots(){
          '「符合」只看資格條件；「可抽」是再扣掉已經中過獎的人之後、'+
          '這個獎項實際抽得到的人數。兩個數字不一樣時才會顯示第二行，'+
          '變紅色就是池子已經空了，按下去會抽不到任何人。')+'</p>'+
+      /* 6w-2：大螢幕顯示設定的容器。內容由 render() 之後的 lotStageSet() 填，
+         收合時留一個空的 div —— 這樣 lotSetHost() 永遠找得到掛載點。 */
+      '<div id="lotsetbox" class="lotsetbox"></div>'+
     '</div>';
 }
 
@@ -8019,13 +8589,345 @@ function pgLots(){
    權限沿用後台帳號，不另開一組 —— 會按抽獎鍵的人本來就是後台的人。
    ========================================================= */
 let STG={prize:null,n:1,rows:[],msg:'',busy:false,anim:false,badev:false,roll:false,
-         page:0,pt:null,all:false,rollWid:null,newWid:null};
+         page:0,pt:null,all:false,rollWid:null,newWid:null,
+         /* 6w：素材模式才會用到的三個
+            started  按過開場按鈕沒有。那顆只出現一次，之後都是「等待抽獎」
+            landed   單位＋圖片時落定的那一位 gid，名字留在底部那一條
+            ovRows   本輪剛抽出的那幾位（彈出的 overlay）。
+                     ⚠️ 跟 STG.all 不同 —— 那個是「該獎項累計」，由 W 鍵開 */
+         /* show：素材模式下，中央要公布的是 STG.rows 從第幾筆開始。
+                 ⚠️ 存索引不存陣列。存陣列的話重抽補上來的人不會出現 ——
+                    stageRedraw() 改的是 STG.rows[i]，另一份陣列不會跟著變。
+                 ⚠️ 0 是合法值，判斷一律用 !==null，不能直接當真假值用。
+                 ⚠️ 跟 ovRows 不同 —— 素材模式不再自動彈視窗，
+                    中央就是揭曉的位置；ovRows 只剩 W 鍵的累計名單在用。 */
+         started:false, landed:null, ovRows:null, show:null,
+         /* 6w 快捷鍵：keys 鍵位說明、pick 獎項選單、pickIdx 選單游標 */
+         keys:false, pick:false, pickIdx:0};
 /* 單頁上限。24 位＝約 4 欄 6 列，字級還有 2.8vw，投影出去看得清楚。
    不做「無限縮小塞滿一頁」—— 看不清的名單等於沒公布，
    現場只會一片問「有沒有我」。 */
 const LTPAGE=24;
 
 function stagePrize(){return LOTS.filter(x=>x.id===STG.prize)[0]||null}
+
+/* =========================================================
+   6w：大螢幕素材
+   ========================================================= */
+/* 素材決定版面。動畫優先 —— 現場臨時要換回圖片，
+   只要清掉動畫那一欄，不必重新上傳圖片。 */
+function stageMode(e){
+  if(!e)return 'none';
+  if(e.stage_anim)return 'anim';
+  if(e.stage_img)return 'img';
+  return 'none';
+}
+/* 資料庫存的是 Storage 的物件路徑，不是完整網址 ——
+   專案網域或 bucket 改名時，存網址的話每一場都要重設。
+   ⚠️ 也接受完整網址，萬一哪天改用外部圖床不必動資料。 */
+function stageUrl(path){
+  if(!path)return '';
+  const s=String(path).trim();
+  /* 已經是完整位址就原樣用。
+     ⚠️ 不能只認 http(s):// —— data: 開頭與 //cdn.example.com/a.png 這種
+        protocol-relative 網址也都是完整位址，
+        漏掉的話會被當成 Storage 的相對路徑、前面硬接上專案網域。 */
+  if(/^[a-z][a-z0-9+.-]*:/i.test(s)||s.indexOf('//')===0)return s;
+  return SUPABASE_URL+'/storage/v1/object/public/stage/'+s.replace(/^\/+/,'');
+}
+function stageMediaHtml(e){
+  const m=stageMode(e);
+  if(m==='anim'){
+    /* ⚠️ muted 是必要的，不是裝飾 —— 瀏覽器的自動播放政策會擋掉有聲音的影片，
+       擋下來的話現場就是一片靜止的黑畫面。現場音效走音控台。 */
+    return '<video id="ltanim" src="'+esc(stageUrl(e.stage_anim))+'" '+
+           'muted playsinline preload="auto"></video>';
+  }
+  if(m==='img')return '<img src="'+esc(stageUrl(e.stage_img))+'" alt="">';
+  return '';
+}
+/* 開場按鈕只出現一次：剛打開投影、還沒開始抽的時候。
+   之後每輪結束回到的是「等待抽獎」，不會再看到它。 */
+function stageStartHtml(e){
+  const sub=(e&&e.stage_sub)?String(e.stage_sub).trim():'';
+  return '<button class="ltstart" onclick="stageBegin()">'+
+    '<span class="ltscore">'+
+      '<span class="ltst">開始抽獎</span>'+
+      (sub?'<span class="ltsrule"></span><span class="ltssub">'+esc(sub)+'</span>':'')+
+    '</span></button>';
+}
+function stageBegin(){STG.started=true;render()}
+
+/* 把 n 個人分成幾列，回傳每一列的 [起, 迄]。
+   ⚠️ 任何一列都不會只剩一個人 —— 5 位是 3＋2、7 位是 4＋3，
+      不會出現 4＋1 那種落單（那是 flex 自動換行的結果，投影出來很難看）。
+   欄數先問 ltCols()（既有的規則），再把人平均分到各列，
+   列與列的人數相差不超過一個。 */
+function stageSeg(n){
+  if(n<=1)return [[0,1]];
+  const cols=ltCols(Math.min(n,LTPAGE));
+  let r=Math.max(1,Math.ceil(n/cols));
+  while(r>1&&Math.floor(n/r)<2)r--;      /* 分到最後一列只剩一個就少一列 */
+  const out=[];let used=0;
+  for(let i=0;i<r;i++){
+    const take=Math.floor(n/r)+((i<n%r)?1:0);
+    out.push([used,used+take]);used+=take;
+  }
+  return out;
+}
+
+/* 中央的本輪得獎名單。字級沿用既有的兩段式限制：
+   先看人數（ltFont），再看一格容不容得下最長的名字（ltCellFont）。 */
+function stageCenterWin(rows){
+  const n=rows.length;
+  const seg=stageSeg(n);
+  let cols=1;
+  for(let i=0;i<seg.length;i++)cols=Math.max(cols,seg[i][1]-seg[i][0]);
+  const base=parseFloat(ltFont(Math.min(n,LTPAGE)))||3.4;
+  const cellW=ltCellW(cols);
+  const w=(94/cols).toFixed(2)+'vw';
+  let h='';
+  for(let i=0;i<seg.length;i++){
+    h+='<div class="ltcrow">';
+    for(let j=seg[i][0];j<seg[i][1];j++){
+      const r=rows[j];
+      /* 這一格正在重抽：畫成滾動容器。
+         ⚠️ id 必須是 ltrA／ltrB —— stageRoll() 是直接改這兩個元素的
+            textContent，不重繪整頁（每 55 毫秒 render() 一次畫面會頓）。
+         ⚠️ 只有這一格在滾，其他中獎者原地不動 ——
+            整批切成滾動狀態的話，看起來像全部被重抽了。 */
+      if(r.wid&&r.wid===STG.rollWid){
+        h+='<div class="ltcell ltroll" style="flex:0 0 '+w+';max-width:'+w+'">'+
+          '<div class="ltcsec ltink" id="ltrB" style="font-size:'+
+            (base*0.42).toFixed(2)+'vw">&nbsp;</div>'+
+          '<div class="ltcname ltink" id="ltrA" style="font-size:'+
+            base.toFixed(2)+'vw">&nbsp;</div></div>';
+        continue;
+      }
+      const nm=lotShow(r.gid);
+      const fz=ltCellFont(nm.a,base,cellW);
+      /* 沒填第一欄也要留這一行的高度，否則那一格的名字會整個往上跑，
+         跟同一列的其他人對不齊 —— 十個人裡有兩三個沒填部門是常態。 */
+      h+='<div class="ltcell'+(r.voided?' gone':'')+'" '+
+          'style="flex:0 0 '+w+';max-width:'+w+'">'+
+        '<div class="ltcsec ltink" style="font-size:'+
+          ltCellFont(nm.b||'\u3000',base*0.42,cellW).toFixed(2)+'vw">'+
+          (nm.b?esc(nm.b):'&nbsp;')+'</div>'+
+        '<div class="ltcname ltink" style="font-size:'+fz.toFixed(2)+'vw">'+
+          esc(nm.a)+'</div>'+
+        /* 平常藏著，滑到那一格才出現 —— 全場都看著這個畫面，
+           誤觸的代價是現場事故。 */
+        (r.wid&&!r.voided?'<div class="ltact">'+
+          '<button onclick="stageRedraw('+r.wid+')">重抽</button>'+
+          '<button onclick="stageVoid('+r.wid+')">作廢</button></div>':'')+
+        (r.voided?'<div class="ltcsec ltink">已作廢</div>':'')+
+      '</div>';
+    }
+    h+='</div>';
+  }
+  return h+'<div class="ltcsub ltink">恭 喜 得 獎</div>';
+}
+
+/* 滾動中的那一格。id 沿用 ltrA／ltrB，stageRoll 直接改 textContent，
+   不必為了新版面再寫一份滾動邏輯。 */
+function stageCenterRoll(){
+  const rfs=ltFont(STG.n);
+  return '<div class="ltroll">'+
+    '<div class="ltcsec ltink" id="ltrB" style="font-size:calc('+rfs+' * .42)">&nbsp;</div>'+
+    '<div class="ltcname ltink" id="ltrA" style="font-size:'+rfs+'">&nbsp;</div></div>';
+}
+
+/* =========================================================
+   6w：快捷鍵與獎項選單
+   ⚠️ 滑鼠操作全部保留。快捷鍵是加上去的，不是取代 ——
+      焦點跑掉或瀏覽器攔截時要有退路。
+   ========================================================= */
+function stageActs(){
+  /* 大螢幕只列電子抽獎的獎項。紙本的是在台下抽完再登錄的，
+     出現在這裡會被再抽一次。 */
+  return LOTS.filter(x=>x.active&&(x.mode||'draw')==='draw');
+}
+function stagePickOpen(){
+  const act=stageActs();if(!act.length)return;
+  let i=act.findIndex(x=>x.id===STG.prize);
+  STG.pickIdx=(i<0?0:i);
+  STG.pick=true;STG.keys=false;render();
+}
+function stagePickClose(){STG.pick=false;render()}
+function stagePickMove(d){
+  const act=stageActs();if(!act.length)return;
+  let i=STG.pickIdx+d;
+  if(i<0)i=0;
+  if(i>act.length-1)i=act.length-1;
+  STG.pickIdx=i;render();
+}
+function stagePickGo(i){
+  const act=stageActs();
+  const p=act[(i==null?STG.pickIdx:i)];
+  STG.pick=false;
+  if(p)stagePick(p.id);else render();
+}
+/* ↑ ↓ 沒開選單時就是循序切換獎項 */
+function stagePrizeStep(d){
+  const act=stageActs();if(!act.length)return;
+  let i=act.findIndex(x=>x.id===STG.prize);
+  i=(i<0?0:i+d);
+  if(i<0)i=0;
+  if(i>act.length-1)i=act.length-1;
+  if(act[i]&&act[i].id!==STG.prize)stagePick(act[i].id);
+}
+
+/* ⚠️ 不做「1–9 直接跳獎項」：獎項數量沒有上限（壓測檔就有 13 項），
+   而且抽到一半新增或刪除一個獎項，原本的 3 就對到別的東西 ——
+   現場按下去會抽錯獎。改用這張選單，順便看得到每項剩幾個名額。 */
+function renderStagePick(){
+  if(!STG.pick)return '';
+  const act=stageActs();
+  const rows=act.length?act.map(function(p,i){
+    const live=lotLive(p.id);
+    const left=Math.max(0,p.total-live);
+    return '<div class="ltpickrow'+(i===STG.pickIdx?' on':'')+(left<=0?' done':'')+'" '+
+      'onclick="stagePickGo('+i+')">'+
+      '<b>'+esc(p.name)+'</b>'+
+      '<span>已抽 '+live+' / '+p.total+(left>0?('　·　剩 '+left+' 位'):'　·　已抽完')+'</span>'+
+    '</div>';
+  }).join('')
+  :'<div class="ltpickfoot">這場還沒有啟用中的抽獎獎項。</div>';
+  return '<div class="ltpick"><div class="ltpickbox">'+
+    '<h3>選擇獎項</h3>'+rows+
+    '<div class="ltpickfoot">↑ ↓ 移動　·　ENTER 確認　·　ESC 取消</div>'+
+  '</div></div>';
+}
+
+function stageKeysOpen(){STG.keys=!STG.keys;STG.pick=false;render()}
+function renderStageKeys(){
+  if(!STG.keys)return '';
+  const rows=[['空白','抽獎'],['ESC','關閉名單／選單'],['← →','名單翻頁'],
+              ['↑ ↓','切換獎項'],['G','獎項選單'],['W','該獎項完整名單'],
+              ['F','全螢幕'],['?','這張說明']]
+    .map(function(r){return '<tr><td><kbd>'+r[0]+'</kbd></td><td>'+r[1]+'</td></tr>'}).join('');
+  return '<div class="ltkeys" onclick="stageKeysOpen()"><div class="ltkeysbox">'+
+    '<h3>鍵盤快捷鍵</h3><table>'+rows+'</table>'+
+    '<div class="ltpickfoot">重抽與作廢沒有快捷鍵，只能用滑鼠 —— '+
+      '那兩個不可逆，誤觸的代價太高</div>'+
+  '</div></div>';
+}
+
+/* 按了沒反應現場會慌，閃一下邊框當回饋 */
+function stageFlash(){
+  const w=document.querySelector('.ltwrap');if(!w)return;
+  const f=document.createElement('div');f.className='ltflash';
+  w.appendChild(f);
+  setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f)},340);
+}
+
+/* ⚠️ 輸入框內一律不觸發 —— 焦點在「抽幾位」那個框時，
+   按空白鍵應該是打空白。這類 bug 現場很難查，
+   因為重現條件是「剛好點過某個框」。 */
+function stageKeyDown(e){
+  if(VIEW!=='stage')return;
+  if(!USER||STG.badev)return;
+  const t=e.target;
+  if(t&&t.tagName&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if(e.ctrlKey||e.altKey||e.metaKey)return;
+  const k=e.key;
+
+  /* 鍵位說明開著時，任何鍵都只是關掉它 */
+  if(STG.keys){e.preventDefault();STG.keys=false;render();return}
+
+  if(STG.pick){
+    if(k==='ArrowUp'){e.preventDefault();stagePickMove(-1);return}
+    if(k==='ArrowDown'){e.preventDefault();stagePickMove(1);return}
+    if(k==='Enter'){e.preventDefault();stagePickGo();return}
+    if(k==='Escape'){e.preventDefault();stagePickClose();return}
+    return;
+  }
+
+  if(k==='Escape'){
+    e.preventDefault();
+    if(STG.ovRows){stageOvClose();return}
+    if(STG.all){stageAllClose();return}
+    if(STG.show!==null){STG.show=null;render();return}
+    return;
+  }
+  if(k==='g'||k==='G'){e.preventDefault();stageFlash();stagePickOpen();return}
+  if(k==='?'||(k==='/'&&e.shiftKey)){e.preventDefault();stageKeysOpen();return}
+  if(k==='w'||k==='W'){
+    e.preventDefault();
+    if(STG.ovRows)return;              /* 名單開著時先 ESC，免得兩層疊在一起 */
+    stageFlash();STG.all?stageAllClose():stageAllOpen();return;
+  }
+  if(k==='f'||k==='F'){e.preventDefault();stageFull();return}
+
+  if(k==='ArrowLeft'||k==='ArrowRight'){
+    e.preventDefault();
+    if(STG.ovRows||STG.all||STG.roll)return;
+    const tp=Math.max(1,Math.ceil(STG.rows.length/LTPAGE));
+    if(tp<2)return;
+    stagePageGo(Math.min(tp-1,Math.max(0,STG.page+(k==='ArrowLeft'?-1:1))));
+    return;
+  }
+  if(k==='ArrowUp'||k==='ArrowDown'){
+    e.preventDefault();
+    if(STG.busy||STG.roll)return;
+    stagePrizeStep(k==='ArrowUp'?-1:1);return;
+  }
+
+  if(k===' '||k==='Spacebar'){
+    e.preventDefault();
+    /* ⚠️ 名單開著時空白鍵不做任何事。
+       必須先 ESC 收掉才能抽下一輪 —— 抽獎是不可逆動作，
+       現場搶快出錯的代價比慢一拍高。 */
+    if(STG.ovRows||STG.all||STG.show!==null)return;
+    if(STG.busy||STG.roll)return;
+    if(stageMode(ev())!=='none'&&!STG.started){stageFlash();stageBegin();return}
+    stageFlash();stageDraw();return;
+  }
+}
+document.addEventListener('keydown',stageKeyDown);
+function stageOvOpen(rows){STG.ovRows=rows}
+function stageOvClose(){STG.ovRows=null;render()}
+
+/* 動畫每次抽都從頭播。
+   ⚠️ 要在 render() 把 video 畫出來之後才抓得到，所以延後一拍。
+      play() 被瀏覽器拒絕時不能讓整個抽獎流程停掉 —— 動畫沒播是小事，
+      抽不出來是大事，所以 catch 掉就算了。 */
+function stagePlayAnim(){
+  setTimeout(function(){
+    const v=document.getElementById('ltanim');
+    if(!v)return;
+    try{v.currentTime=0;const q=v.play();if(q&&q.catch)q.catch(function(){})}catch(_){}
+  },30);
+}
+
+/* 本輪剛抽出的那幾位。接近全螢幕，不是置中對話框 ——
+   24 位鋪滿全螢幕字級才 2.8vw，塞進有邊框的小視窗投影到後排就看不清了。 */
+function renderStageOv(){
+  if(!STG.ovRows||!STG.ovRows.length)return '';
+  const p=stagePrize();
+  const n=STG.ovRows.length;
+  const cols=ltCols(Math.min(n,LTPAGE));
+  const base=parseFloat(ltFont(Math.min(n,LTPAGE)))||3.4;
+  const cellW=ltCellW(cols);
+  const cards=STG.ovRows.map(function(r){
+    const nm=lotShow(r.gid);
+    const fz=ltCellFont(nm.a,base,cellW);
+    return '<div class="ltone" style="animation:none;opacity:1;transform:none">'+
+      /* 沒填第一欄也要留這一行的高度，否則那一格的名字會整個往上跑，
+         跟同一列的其他人對不齊 */
+      '<div class="ltsec" style="font-size:'+
+        ltCellFont(nm.b||'\u3000',base*0.42,cellW).toFixed(2)+'vw">'+
+        (nm.b?esc(nm.b):'&nbsp;')+'</div>'+
+      '<div class="ltname" style="font-size:'+fz.toFixed(2)+'vw">'+esc(nm.a)+'</div>'+
+    '</div>';
+  }).join('');
+  return '<div class="ltov"><div class="ltovbox">'+
+    '<div class="ltovhead"><b>'+esc(p?p.name:'')+'</b>'+
+      '<span>本輪 '+n+' 位</span></div>'+
+    '<div class="ltlist" style="flex:1;min-height:0;align-content:center;'+
+      '--ltfs:'+base.toFixed(2)+'vw;--ltcols:'+cols+'">'+cards+'</div>'+
+    '<div class="ltovfoot">按 ESC 關閉</div></div></div>';
+}
 
 /* 剩餘名額 = 名額 - 已佔（含作廢，名額是被佔掉的） */
 /* 剩餘名額。
@@ -8049,6 +8951,9 @@ function stagePick(v){
   STG.rows=p?lotRowsOf(p.id):[];
   STG.anim=false;   /* 載回來的不重播動畫，那是舊資料不是剛抽出的 */
   STG.msg='';STG.page=0;stagePageStop();
+  /* 6w：切獎項代表上一個已經頒完，畫面上的落定與名單要收掉。
+     資料庫紀錄不動，按 W 仍然看得到該獎項的完整名單。 */
+  STG.landed=null;STG.ovRows=null;STG.show=null;
   render();
 }
 function stageNum(v){STG.n=Math.max(1,parseInt(v,10)||1)}
@@ -8357,9 +9262,20 @@ async function stageDraw(){
   const oneM=(p2.draw_mode==='one');
   const nCell=oneM?(STG.rows.length+1):STG.n;
   const rCols=oneM?ltCols(Math.min(nCell,LTPAGE)):1;
-  const roll=stageRoll(pool,(rollMs==null?2500:rollMs),
-    parseFloat(ltFont(Math.min(nCell,LTPAGE)))||3.4,
-    oneM?ltCellW(rCols):90);
+  /* 6w：素材模式的底部那一條字級是固定的（5vh），
+     不能讓 stageRoll 每換一個名字就改一次 —— base 與 cellW 傳 0，
+     那支函式裡的 if(base&&cellW) 就會跳過字級計算。
+     動畫模式沒有可畫的格子（那一條是隱藏的），
+     stageRoll 的 paint() 找不到 ltrA／ltrB 會自己跳過，
+     所以這裡只是借它的計時器等動畫播完。 */
+  const sm=stageMode(ev());
+  const waitMs=(sm==='anim')
+    ? (((ev()||{}).stage_anim_ms==null)?4000:ev().stage_anim_ms)
+    : (rollMs==null?2500:rollMs);
+  if(sm==='anim')stagePlayAnim();
+  const roll=stageRoll(pool,waitMs,
+    sm!=='none'?0:(parseFloat(ltFont(Math.min(nCell,LTPAGE)))||3.4),
+    sm!=='none'?0:(oneM?ltCellW(rCols):90));
 
   const r=await sb.rpc('lottery_draw',{p_prize_id:p.id,p_count:want,p_pool:pool});
   if(r.error){roll.abort=true;STG.busy=false;STG.roll=false;STG.msg='抽選失敗，請重試';
@@ -8403,6 +9319,21 @@ async function stageDraw(){
   stageSyncN(p2);
   log('抽獎：'+p.name+' 抽出 '+ids.length+' 位',
       '池子 '+pool.length+' 人　重撈耗時 '+ms+' ms'+(d.short?'（池子不足，短少）':''));
+
+  /* 6w：素材模式的揭曉。
+     單位＋圖片 → 滾動停在那一位身上，名字留在底部那一條，不彈視窗
+     其餘（多位，或動畫模式）→ 彈出本輪名單
+     ⚠️ 素材模式不呼叫 stagePageAuto()：名單在 overlay 裡，
+        底下那條沒有頁碼可翻，叫了只會讓計時器空轉。 */
+  const sm2=stageMode(ev());
+  if(sm2!=='none'){
+    /* 不分單位或多位，一律在中央公布 —— 中央就是揭曉的位置，
+       再彈一層 overlay 等於同一件事講兩次。
+       W 鍵的累計名單（ovRows）不受影響。 */
+    /* 存起始索引：fresh 是接在 STG.rows 最後面的那幾筆 */
+    STG.landed=null;STG.ovRows=null;STG.show=STG.rows.length-fresh.length;
+    render();return;
+  }
   render();
   if(p.draw_mode!=='one')stagePageAuto();
 }
@@ -8545,7 +9476,7 @@ function renderStage(){
   const p=stagePrize();
   const gap=e.stage_gap||800;
 
-  let body;
+  let body, mediaOn=false;
   if(!act.length){
     body='<div class="ltmain"><div class="ltempty">這場還沒有啟用中的抽獎獎項。<br>回後台「抽獎設定」新增。</div></div>';
   }else if(!p){
@@ -8641,23 +9572,72 @@ function renderStage(){
       mid='<div class="ltlist" style="--ltfs:'+fs+';--ltcols:'+cols+'">'+list+'</div>';
       pgHtml=pg;
     }else{
-      mid='<div class="ltempty">按右下角「開始抽獎」。</div>';
+      mid='<div class="ltempty">等待抽獎</div>';
     }
-    body='<div class="lthead">'+
+    const head='<div class="lthead">'+
         '<div class="lttitle">'+esc(p.name)+'</div>'+
         '<div class="ltsub">'+(p.note?esc(p.note)+'　·　':'')+
           '名額 '+p.total+' 位　·　已抽出 '+lotLive(p.id)+' 位'+
           (p.draw_mode==='one'?'　·　一個一個抽':'')+'</div>'+
-      '</div>'+
-      '<div class="ltmain">'+mid+
-        (STG.msg?'<div class="ltmsg">'+esc(STG.msg)+'</div>':'')+'</div>'+
-      (pgHtml?'<div class="ltfoot">'+pgHtml+'</div>':'');
+      '</div>';
+
+    /* ⚠️ 6w：有素材才走新版面。沒設素材的場次一行都不會變，
+       所以既有活動完全不受影響。 */
+    const smode=stageMode(e);
+    if(smode!=='none'){
+      /* 6w-2（2026-10-06 改版）：素材鋪滿整個畫面，
+         畫面上只有一個置中的訊息區，三個階段輪流用它：
+           待抽 → 獎項資訊　　滾動 → 名字跳動　　公布 → 本輪得獎名單
+
+         ⚠️ 獎項資訊不再放最上面。設計師的主視覺文字常常壓在圖的上緣，
+            兩邊會疊在一起；移到中央之後整個上半部都留給素材。
+
+         ⚠️ 底部那一條（ltticker／ltslot）在素材模式已經不用了，
+            CSS 還留著是給沒有素材的場次，不要順手刪掉。 */
+      mediaOn=true;
+      let mid2='';
+      if(!STG.started){
+        mid2=stageStartHtml(e);
+      }else if(STG.roll&&smode==='anim'){
+        mid2='';                                 /* 動畫播放中：整個畫面讓給動畫 */
+      }else if(STG.roll){
+        mid2=stageCenterRoll();
+      }else if(STG.show!==null&&STG.rows.length>STG.show){
+        /* 即時從 STG.rows 切片，不存快照 ——
+           重抽／作廢改的是 STG.rows，中央才跟得上。 */
+        mid2=stageCenterWin(STG.rows.slice(STG.show));
+      }else{
+        mid2='<div class="ltcinfo">'+
+          '<div class="t ltink">'+esc(p.name)+'</div>'+
+          '<div class="s ltink">'+(p.note?esc(p.note)+'　·　':'')+
+            '名額 '+p.total+' 位　·　已抽出 '+lotLive(p.id)+' 位'+
+            (p.draw_mode==='one'?'　·　一個一個抽':'')+'</div></div>';
+      }
+      body='<div class="ltmedia full">'+stageMediaHtml(e)+'</div>'+
+        '<div class="ltcenter">'+mid2+'</div>'+
+        (STG.msg?'<div class="ltmsg" style="position:absolute;left:0;right:0;'+
+          'bottom:7vh;text-align:center;z-index:3">'+esc(STG.msg)+'</div>':'');
+    }else{
+      /* ⚠️ 沒有素材時中間仍然是名單（維持原本的版面），
+         但開場按鈕照樣出現 —— 那顆是整場的進場儀式，
+         跟中間放不放素材無關。按下去之後就是原本那條路。 */
+      const inner=STG.started?mid
+        :('<div style="display:flex;align-items:center;justify-content:center;'+
+          'flex:1;width:100%">'+stageStartHtml(e)+'</div>');
+      body=head+
+        '<div class="ltmain">'+inner+
+          (STG.msg?'<div class="ltmsg">'+esc(STG.msg)+'</div>':'')+'</div>'+
+        ((STG.started&&pgHtml)?'<div class="ltfoot">'+pgHtml+'</div>':'');
+    }
   }
 
   STG.anim=false;STG.newWid=null;   /* 字串已經組好，清掉不影響這一次的輸出 */
   const nAll=p?LOTW.filter(w=>w.prize_id===p.id).length:0;
-  return '<div class="ltwrap">'+
-    '<div class="ltbody">'+body+'</div>'+
+  /* 色系。讀不到就用金色 —— SQL 還沒跑的時候 stage_theme 是 undefined，
+     不給預設值的話整組 CSS 變數會是空的，連名字的光暈都會消失。 */
+  return '<div class="ltwrap'+(mediaOn?' media':'')+'" data-pal="'+
+      esc((e&&e.stage_theme)||'gold')+'">'+
+    '<div class="ltbody'+(mediaOn?' full':'')+'">'+body+'</div>'+
     '<div class="lttop">'+
       '<select onchange="stagePick(this.value)"'+(STG.busy?' disabled':'')+'>'+opts+'</select>'+
       (p?'<span style="font-size:13px;color:#9A8FB5">抽</span>'+
@@ -8669,11 +9649,17 @@ function renderStage(){
       '<span class="ltsp"></span>'+
       (nAll?'<button class="ltbtn" onclick="stageAllOpen()">完整名單 '+nAll+' 位</button>':'')+
       '<button class="ltbtn" onclick="lotSync()" title="重新讀取後台的獎項與設定">重新載入</button>'+
+      '<button class="ltbtn" onclick="stagePickOpen()" title="選擇獎項（G）">獎項 G</button>'+
+      '<button class="ltbtn" onclick="stageKeysOpen()" title="鍵盤快捷鍵一覽">鍵位 ?</button>'+
       '<button class="ltbtn" onclick="stageFull()">全螢幕</button>'+
-      (p?'<button class="ltbtn go" onclick="stageDraw()"'+(STG.busy?' disabled':'')+'>'+
-        (STG.busy?'抽選中…':'開始抽獎')+'</button>':'')+
+      (p?'<button class="ltbtn go" onclick="'+(STG.started?'stageDraw()':'stageBegin()')+'"'+
+        (STG.busy?' disabled':'')+'>'+
+        (STG.busy?'抽選中…':(STG.started?'開始抽獎':'進入抽獎'))+'</button>':'')+
     '</div>'+
     (STG.all?renderStageAll():'')+
+    renderStageOv()+
+    renderStagePick()+
+    renderStageKeys()+
   '</div>';
 }
 
@@ -9081,18 +10067,22 @@ function copyText(t,btn){
 function roleView(r){return r==='lottery'?'paper':'checkin'}
 
 function shareText(){
-  /* 網址跟著「這批的職能」走 —— 貼錯入口的話，現場輸入代碼會被擋在職能檢查，
-     而那個訊息看起來很像代碼有問題，會白白浪費準備時間。 */
-  const r=pickRole();
-  const title=(r==='lottery')?'【抽獎登錄操作說明】':'【報到系統操作說明】';
+  /* ⚠️ 一律用中性入口 ?view=go，一條連結通吃三種職能。
+
+     2026-10-06 之前這裡是 pickRole() —— 讀的是「批次產生」那一區的下拉，
+     跟你要分享的那組代碼完全無關。那個下拉預設是報到核銷，
+     於是紙本抽獎的代碼也配到 ?view=checkin，現場進去看到的是報到介面。
+     根因是「一顆全域按鈕要猜某一列的職能」，所以改成不需要猜。 */
+  const title='【現場系統操作說明】';
   return title+'\n\n'+
     '1. 直接點開連結，會自動用手機的瀏覽器開啟\n'+
     '   若還停在 LINE 裡面，請點右上角選「用其他瀏覽器開啟」\n'+
     '   在 LINE 內建的瀏覽器裡無法使用相機掃碼\n'+
     '2. 輸入活動前提供給你的專屬代碼\n'+
     '3. 輸入一次即可，之後重開不用再輸入\n'+
-    '4. 代碼請勿轉傳他人\n\n'+
-    '網址：'+lineUrl(baseUrl()+'?view='+roleView(r));
+    '4. 代碼請勿轉傳他人\n'+
+    '5. 系統會依你的代碼自動開啟對應的工作畫面，不用選\n\n'+
+    '網址：'+lineUrl(baseUrl()+'?view=go');
 }
 function pgCodes(){
   const e=ev();
@@ -9185,9 +10175,13 @@ async function ops(action,payload){
   }
   return r.data||{};
 }
-/* 代碼失效時統一從這裡退出：清掉裝置上的代碼，退回輸入畫面 */
+/* 代碼失效時統一從這裡退出：清掉裝置上的代碼，退回輸入畫面。
+   ⚠️ 一併退回中性入口 —— 下一組代碼的職能不一定跟這一組一樣，
+      停在 ?view=paper 的話，換成報到代碼就又會卡在職能不符。
+      「切換身分」也是走這裡，所以一併涵蓋了。 */
 function gateFail(msg){
   try{localStorage.removeItem(CKKEY)}catch(_){}
+  goSwitch('go');
   CKCODE='';CKGATE=true;CKMSG=msg||'';
   stopSync();camStop(true);
   LOADING=false;render();
@@ -9255,10 +10249,44 @@ async function bootCheckin(fromGate){
   }
   OFFLINE=false;
 
+  /* ⚠️ 6w：三種職能都要保留。
+     舊版是 (o.role==='redeem')?'redeem':'checkin'，
+     lottery 掉進 else 變成 checkin —— 紙本抽獎的代碼進來會被當成報到台，
+     畫面全是報到核銷的介面，但按下去會被伺服器以 wrong_role 擋掉。
+     認不得的值才退回 checkin。 */
+  const ROLE_OK=['checkin','redeem','lottery'];
   try{localStorage.setItem(CKKEY,CKCODE)}catch(_){}
   CODE={code:CKCODE,label:o.label,active:true};
-  CKROLE=(o.role==='redeem')?'redeem':'checkin';
+  CKROLE=(ROLE_OK.indexOf(o.role)>=0)?o.role:'checkin';
   CKGIFT=!!o.gift;
+
+  /* ⚠️ 入口與職能不符就擋在這裡，不要放人進一個按下去才會失敗的畫面。
+     roleView() 已經知道哪個職能該走哪個入口：
+     lottery → ?view=paper，其餘 → ?view=checkin（redeem 與 checkin 共用，刻意的）。 */
+  const want=roleView(CKROLE);
+
+  /* 中性入口：不報錯，直接靜默切到對的頁（Neal 指定）。
+     核銷頁本身有職能標籤，真的拿錯代碼的人看得到，退出重輸即可 ——
+     多一個確認畫面只是在現場最忙的時候多一次點擊。 */
+  if(VIEW==='go'){
+    goSwitch(want);
+    if(want==='paper'){
+      /* 紙本登錄是另一支啟動流程，資料結構完全不同，不能沿用這裡載到的名單。
+         fromGate=true：代碼已經確認過，不要再去讀一次網址與 localStorage。 */
+      log('中性入口分流：'+CODE.label,'職能 '+CKROLE+' → ?view=paper');
+      bootPaper(true);return;
+    }
+    log('中性入口分流：'+CODE.label,'職能 '+CKROLE+' → ?view=checkin');
+  }else if(VIEW!==want){
+    const RN={checkin:'報到核銷',redeem:'兌換發放',lottery:'紙本抽獎登錄'};
+    CKERR='這組代碼是「'+(RN[CKROLE]||CKROLE)+'」用的，這個頁面是「'+
+          (RN[VIEW==='paper'?'lottery':'checkin'])+'」。\n\n'+
+          '請改用這個網址：'+baseUrl()+'?view='+want+'&code='+CKCODE;
+    CODE=null;LOADING=false;
+    log('代碼職能與入口不符','代碼職能 '+CKROLE+'，目前入口 ?view='+VIEW+
+        '　正確入口是 ?view='+want,true);
+    render();return;
+  }
   EVENTS=[o.event];EVID=o.event.id;FIELDS=o.fields||[];
   GUESTS=[];VALS={};
   let page=0;
@@ -10084,7 +11112,8 @@ function renderCheckin(){
         ? '<b>暫時無法進入</b><small>系統忙碌或發生錯誤，請稍後再試一次</small>'
         : '<b>無法進入</b><small>代碼無效或已停用</small>')+'</div>'+
       (sysErr?'':'<p class="note">核銷頁只接受後台產生的代碼，由伺服器端驗證。</p>')+
-      (CKERR?'<p class="note">'+esc(CKERR)+'</p>':'')+'</div>';
+      (CKERR?'<p class="note" style="white-space:pre-line;word-break:break-all">'+
+      esc(CKERR)+'</p>':'')+'</div>';
   }
   if(!CODE.active)return '<div class="ck"><div class="big bad"><b>代碼已停用</b>'+
     '<small>'+esc(CODE.label)+'　'+esc(CODE.code)+'</small></div>'+
@@ -12035,7 +13064,8 @@ function renderPaper(){
       (sysErr
         ? '<b>暫時無法進入</b><small>系統忙碌或發生錯誤，請稍後再試一次</small>'
         : '<b>無法進入</b><small>代碼無效、已停用，或不是抽獎登錄用的代碼</small>')+'</div>'+
-      (CKERR?'<p class="note">'+esc(CKERR)+'</p>':'')+'</div>';
+      (CKERR?'<p class="note" style="white-space:pre-line;word-break:break-all">'+
+      esc(CKERR)+'</p>':'')+'</div>';
   }
   const e=ev()||{name:''};
   const p=ppPrize();
@@ -12101,7 +13131,12 @@ function renderPaper(){
    ltCols / ltFont / ltCellW / ltCellFont 都直接呼叫，不另寫一份。 */
 
 let PS={pid:null,rows:[],page:0,newWid:null,anim:false,
-        badev:false,live:false,ch:null,tick:null,busy:false};
+        badev:false,live:false,ch:null,tick:null,busy:false,
+        /* keys：鍵位說明面板　pick：獎項選單　pickIdx：選單游標
+           ⚠️ 投影端也能切獎項（2026-10-12 改）——
+              現場流程是「選獎項 → 掃描登錄 → 公布完 → 切下一個」，
+              投影端本來就是主控台，不是鏡子。 */
+        keys:false, pick:false, pickIdx:0};
 
 /* 這個獎項目前該顯示在投影上的名單。
    ⚠️ remove（登錄錯誤）與 redraw（被重抽換掉）都不顯示，
@@ -12179,11 +13214,21 @@ function renderPStage(){
      （分流之前選過的舊值），那時候要當成還沒選，不能把電子獎項投出去。 */
   const p=LOTS.filter(x=>x.id===PS.pid&&(x.mode||'draw')==='paper')[0]||null;
   const gap=e.stage_gap||800;
+  /* ⚠️ 紙本只吃圖片，刻意忽略 stage_anim。
+     動畫是為了「按下去抽選」那一瞬間做的，紙本沒有那個動作，
+     放進來只會在開場播一次就停在最後一格。 */
+  const psimg=e.stage_img?stageUrl(e.stage_img):'';
   let body,pgHtml='';
 
   if(!p){
-    /* 待機：只放活動名稱。投影幕上不該出現操作說明，全場都看得到 */
-    body='<div class="ltmain"><div class="ltempty">'+esc(e.name)+'</div></div>';
+    /* 待機：只放活動名稱。投影幕上不該出現操作說明，全場都看得到。
+       有圖就鋪滿當背景，沒放圖維持原本的黑底（Neal 指定）—— 
+       投影幕在開場前就會亮著，有圖的話那段時間不會是一片黑。 */
+    body=psimg
+      ? ('<div class="ltmedia full"><img src="'+esc(psimg)+'" alt=""></div>'+
+         '<div class="ltcenter"><div class="ltcinfo">'+
+           '<div class="t ltink">'+esc(e.name)+'</div></div></div>')
+      : '<div class="ltmain"><div class="ltempty">'+esc(e.name)+'</div></div>';
   }else{
     const rows=PS.rows;
     let mid;
@@ -12218,7 +13263,9 @@ function renderPStage(){
           (r.voided?'<div class="ltsec">已作廢</div>':'')+
         '</div>';
       }).join('');
-      mid='<div class="ltlist" style="--ltfs:'+fs+';--ltcols:'+cols+'">'+list+'</div>';
+      /* 素材模式走中央那一套（不落單的分列），其餘維持原本的 flex 版面 */
+      mid=psimg ? psCenterList(view,gap,an)
+                : '<div class="ltlist" style="--ltfs:'+fs+';--ltcols:'+cols+'">'+list+'</div>';
 
       /* ⚠️ 不做自動翻頁。名單是一位一位長出來的，
          自動輪播會跟「跳到最新那一頁」互相打架 ——
@@ -12235,6 +13282,19 @@ function renderPStage(){
           '<span class="ltpgn">共 '+rows.length+' 位　·　第 '+(PS.page+1)+' / '+tp+' 頁</span></div>';
       }
     }
+    if(psimg){
+      /* 素材模式：上緣完全淨空，獎項資訊與名單共用中央那一個位置。
+         還沒登錄任何人時中央顯示獎項資訊，登錄之後換成名單 ——
+         跟電子大螢幕「畫面上同時只有一件事」的原則一致。 */
+      const psinfo='<div class="ltcinfo">'+
+          '<div class="t ltink">'+esc(p.name)+'</div>'+
+          '<div class="s ltink">'+(p.note?esc(p.note)+'　·　':'')+
+            '名額 '+p.total+' 位　·　已公布 '+rows.filter(r=>!r.voided).length+' 位</div>'+
+        '</div>';
+      body='<div class="ltmedia full"><img src="'+esc(psimg)+'" alt=""></div>'+
+        '<div class="ltcenter">'+(rows.length?mid:psinfo)+
+          (pgHtml?'<div class="ltpgmid">'+pgHtml+'</div>':'')+'</div>';
+    }else{
     body='<div class="lthead">'+
         '<div class="lttitle">'+esc(p.name)+'</div>'+
         '<div class="ltsub">'+(p.note?esc(p.note)+'　·　':'')+
@@ -12242,19 +13302,203 @@ function renderPStage(){
       '</div>'+
       '<div class="ltmain">'+mid+'</div>'+
       (pgHtml?'<div class="ltfoot">'+pgHtml+'</div>':'');
+    }
   }
 
   PS.anim=false;PS.newWid=null;   /* 字串已經組好，清掉不影響這一次的輸出 */
-  return '<div class="ltwrap">'+
+  return '<div class="ltwrap'+(psimg?' media':'')+'" data-pal="'+
+      esc((e&&e.stage_theme)||'gold')+'">'+
     '<div id="psdot" class="psdot'+(PS.live?'':' off')+'" title="即時連線狀態"></div>'+
-    '<div class="ltbody">'+body+'</div>'+
+    '<div class="ltbody'+(psimg?' full':'')+'">'+body+'</div>'+
     '<div class="lttop">'+
+      '<select onchange="psPick(this.value)"'+(PS.busy?' disabled':'')+'>'+psOpts()+'</select>'+
       '<span style="font-size:13px;color:#9A8FB5">'+esc(e.name)+'　紙本抽獎</span>'+
       '<span class="ltsp"></span>'+
       '<button class="ltbtn" onclick="psTick()">重新載入</button>'+
+      '<button class="ltbtn" onclick="psPickOpen()">獎項 G</button>'+
+      '<button class="ltbtn" onclick="psKeysOpen()">鍵位 ?</button>'+
       '<button class="ltbtn" onclick="stageFull()">全螢幕</button>'+
-    '</div></div>';
+    '</div>'+renderPSPick()+renderPSKeys()+'</div>';
 }
+
+/* 中央名單（素材模式）。排法沿用 stageSeg() —— 任何一列都不會只剩一個人。
+   ⚠️ 與電子版的差別只在浮出動畫：那邊是本輪一起揭曉，
+      這邊是登錄一位長一位，所以只有新進來的那一位帶動畫。 */
+function psCenterList(rows,gap,an){
+  const n=rows.length;
+  const seg=stageSeg(n);
+  let cols=1;
+  for(let i=0;i<seg.length;i++)cols=Math.max(cols,seg[i][1]-seg[i][0]);
+  const base=parseFloat(ltFont(Math.min(n,LTPAGE)))||3.4;
+  const cellW=ltCellW(cols);
+  const w=(94/cols).toFixed(2)+'vw';
+  let h='',k=0;
+  for(let i=0;i<seg.length;i++){
+    h+='<div class="ltcrow">';
+    for(let j=seg[i][0];j<seg[i][1];j++){
+      const r=rows[j];
+      const nm=lotShow(r.gid);
+      const fz=ltCellFont(nm.a,base,cellW);
+      /* 整頁重繪時如果全部重播，每登錄一個人全場名字都會閃一次，看起來像當機 */
+      let st;
+      if(an)                      st='animation-delay:'+(k*gap)+'ms';
+      else if(r.wid===PS.newWid)  st='animation-delay:0ms';
+      else                        st='animation:none;opacity:1;transform:none';
+      k++;
+      h+='<div class="ltcell psin'+(r.voided?' gone':'')+'" '+
+          'style="flex:0 0 '+w+';max-width:'+w+';'+st+'">'+
+        '<div class="ltcsec ltink" style="font-size:'+
+          ltCellFont(nm.b||'\u3000',base*0.42,cellW).toFixed(2)+'vw">'+
+          (nm.b?esc(nm.b):'&nbsp;')+'</div>'+
+        '<div class="ltcname ltink" style="font-size:'+fz.toFixed(2)+'vw">'+
+          esc(nm.a)+'</div>'+
+        (r.voided?'<div class="ltcsec ltink">已作廢</div>':'')+
+      '</div>';
+    }
+    h+='</div>';
+  }
+  return h;
+}
+
+function psKeysOpen(){PS.keys=!PS.keys;PS.pick=false;render()}
+
+/* 可選的獎項：這一場、啟用中、而且是紙本的。
+   ⚠️ 一定要濾掉電子獎項 —— 投錯的話那個獎會被當成紙本登錄，
+      而電子獎項是要在大螢幕抽的。 */
+function psActs(){
+  return LOTS.filter(function(x){return x.active&&(x.mode||'draw')==='paper'});
+}
+function psOpts(){
+  const act=psActs();
+  return '<option value="">— 選擇獎項 —</option>'+
+    act.map(function(p){
+      return '<option value="'+p.id+'"'+(PS.pid===p.id?' selected':'')+'>'+
+        esc(p.name)+'（已公布 '+lotLive(p.id)+' / '+p.total+'）</option>';
+    }).join('');
+}
+
+/* 切獎項＝寫 events.paper_prize_id。
+   ⚠️ 不自己改 PS.pid —— 一律寫進資料庫再讓 psTick() 讀回來。
+      自己先改的話，寫入失敗時畫面會停在一個資料庫沒有的獎項上，
+      而登錄端那邊還在舊的，兩邊對不起來比慢半秒嚴重得多。 */
+async function psPick(v){
+  if(PS.busy)return;
+  const id=parseInt(v,10)||null;
+  PS.busy=true;
+  const {error}=await sb.from('events')
+    .update({paper_prize_id:id}).eq('id',EVID);
+  PS.busy=false;
+  if(error){
+    alert('切換獎項失敗：'+error.message);
+    log('投影端切換紙本獎項失敗',error.message,true);
+    render();return;
+  }
+  log('投影端切換紙本獎項','paper_prize_id = '+(id||'（清空）'));
+  await psTick();
+}
+
+async function psPickOpen(){
+  /* 開選單前重撈一次 —— 名額和已公布數可能在別處被改過，
+     拿舊數字做決定是現場最常見的錯。 */
+  await loadLots(EVID);
+  const act=psActs();if(!act.length){render();return}
+  let i=act.findIndex(function(x){return x.id===PS.pid});
+  PS.pickIdx=(i<0?0:i);
+  PS.pick=true;PS.keys=false;render();
+}
+function psPickClose(){PS.pick=false;render()}
+function psPickMove(d){
+  const act=psActs();if(!act.length)return;
+  let i=PS.pickIdx+d;
+  if(i<0)i=0;
+  if(i>act.length-1)i=act.length-1;
+  PS.pickIdx=i;render();
+}
+function psPickGo(i){
+  const act=psActs();
+  const p=act[(i==null?PS.pickIdx:i)];
+  PS.pick=false;
+  if(p)psPick(p.id);else render();
+}
+/* ↑ ↓ 沒開選單時就是循序切換獎項（與電子大螢幕一致） */
+function psPrizeStep(d){
+  const act=psActs();if(!act.length)return;
+  let i=act.findIndex(function(x){return x.id===PS.pid});
+  i=(i<0?0:i+d);
+  if(i<0)i=0;
+  if(i>act.length-1)i=act.length-1;
+  if(act[i]&&act[i].id!==PS.pid)psPick(act[i].id);
+}
+function renderPSPick(){
+  if(!PS.pick)return '';
+  const act=psActs();
+  const rows=act.length?act.map(function(p,i){
+    const live=lotLive(p.id);
+    const left=Math.max(0,p.total-live);
+    return '<div class="ltpickrow'+(i===PS.pickIdx?' on':'')+(left<=0?' done':'')+'" '+
+      'onclick="psPickGo('+i+')">'+
+      '<b>'+esc(p.name)+'</b>'+
+      '<span>已公布 '+live+' / '+p.total+(left>0?('　·　剩 '+left+' 位'):'　·　已公布完畢')+'</span>'+
+    '</div>';
+  }).join('')
+  :'<div class="ltpickfoot">這場還沒有啟用中的紙本獎項。</div>';
+  return '<div class="ltpick"><div class="ltpickbox">'+
+    '<h3>選擇獎項</h3>'+rows+
+    '<div class="ltpickfoot">\u2191 \u2193 移動　·　ENTER 確認　·　ESC 取消</div>'+
+  '</div></div>';
+}
+function renderPSKeys(){
+  if(!PS.keys)return '';
+  const rows=[['\u2191 \u2193','切換獎項'],['G','獎項選單'],
+              ['\u2190 \u2192','名單翻頁'],['ESC','關閉選單'],
+              ['F','全螢幕'],['?','這張說明']]
+    .map(function(r){return '<tr><td><kbd>'+r[0]+'</kbd></td><td>'+r[1]+'</td></tr>'}).join('');
+  return '<div class="ltkeys" onclick="psKeysOpen()"><div class="ltkeysbox">'+
+    '<h3>鍵盤快捷鍵</h3><table>'+rows+'</table>'+
+    '<div class="ltpickfoot">沒有抽選的快捷鍵 —— 紙本是台下抽完才登錄，',
+      '投影端只負責公布</div>'+
+  '</div></div>';
+}
+
+/* ⚠️ 輸入框內一律不觸發，與電子大螢幕同一套規矩。
+   這一頁沒有輸入框，但往後若加了（例如搜尋）才不會被這裡吃掉按鍵。 */
+function psKeyDown(e){
+  if(VIEW!=='pstage')return;
+  if(!USER||PS.badev)return;
+  const t=e.target;
+  if(t&&t.tagName&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if(e.ctrlKey||e.altKey||e.metaKey)return;
+  const k=e.key;
+  /* 鍵位說明開著時，任何鍵都只是關掉它 */
+  if(PS.keys){e.preventDefault();PS.keys=false;render();return}
+
+  /* 獎項選單開著時只收這四個鍵，其餘一律吞掉 */
+  if(PS.pick){
+    if(k==='ArrowUp'){e.preventDefault();psPickMove(-1);return}
+    if(k==='ArrowDown'){e.preventDefault();psPickMove(1);return}
+    if(k==='Enter'){e.preventDefault();psPickGo();return}
+    if(k==='Escape'){e.preventDefault();psPickClose();return}
+    return;
+  }
+
+  if(k==='Escape'){e.preventDefault();return}
+  if(k==='?'||(k==='/'&&e.shiftKey)){e.preventDefault();stageFlash();psKeysOpen();return}
+  if(k==='g'||k==='G'){e.preventDefault();stageFlash();psPickOpen();return}
+  if(k==='f'||k==='F'){e.preventDefault();stageFull();return}
+  if(k==='ArrowUp'||k==='ArrowDown'){
+    e.preventDefault();
+    if(PS.busy)return;
+    psPrizeStep(k==='ArrowUp'?-1:1);return;
+  }
+  if(k==='ArrowLeft'||k==='ArrowRight'){
+    e.preventDefault();
+    const tp=Math.max(1,Math.ceil(PS.rows.length/LTPAGE));
+    if(tp<2)return;
+    PS.page=Math.min(tp-1,Math.max(0,PS.page+(k==='ArrowLeft'?-1:1)));
+    stageFlash();render();return;
+  }
+}
+document.addEventListener('keydown',psKeyDown);
 
 async function bootPStage(){
   const id=parseInt(qp('e'),10);
@@ -12291,7 +13535,8 @@ async function bootPStage(){
 
 /* ---- 啟動 ---- */
 drawLog();
-if(VIEW==='checkin')bootCheckin();
+/* 'go' 與 'checkin' 共用同一支啟動流程 —— 差別只在拿到職能之後走不走分流 */
+if(VIEW==='checkin'||VIEW==='go')bootCheckin();
 else if(VIEW==='form')bootForm();
 else if(VIEW==='me')bootMe();
 else if(VIEW==='stage')bootStage();
